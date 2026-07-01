@@ -12,32 +12,100 @@ import {
   SignalValue,
 } from "@kinos/ui";
 
-/** The hero Orbit — rings, a breathing centre, satellites in calm motion. */
+/**
+ * The hero Orbit — the loved one as a warm lamplight heart, family and
+ * signals circling in calm motion, ambient stars breathing behind.
+ */
 function HeroOrbit() {
+  const stars: [number, number, number, number][] = [
+    [42, 84, 1.6, 0], [330, 46, 1.3, 1.8], [356, 132, 1.1, 3.4], [24, 210, 1.4, 2.6],
+    [70, 322, 1.2, 4.2], [300, 328, 1.5, 1.2], [222, 22, 1.1, 5.0], [148, 352, 1.2, 2.2],
+  ];
   return (
     <div aria-hidden className="grid min-h-[320px] place-items-center md:min-h-[360px]">
       <svg width="380" height="380" viewBox="0 0 380 380" className="max-w-full text-halo">
+        <defs>
+          <radialGradient id="core-glow">
+            <stop offset="0%" stopColor="#EDEBF6" stopOpacity=".9" />
+            <stop offset="35%" stopColor="#A9A7E0" stopOpacity=".38" />
+            <stop offset="100%" stopColor="#A9A7E0" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="ember-glow">
+            <stop offset="0%" stopColor="#D98A3D" stopOpacity=".55" />
+            <stop offset="100%" stopColor="#D98A3D" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="calm-glow">
+            <stop offset="0%" stopColor="#4E9E7E" stopOpacity=".5" />
+            <stop offset="100%" stopColor="#4E9E7E" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        {/* ambient stars, breathing on their own slow clocks */}
+        {stars.map(([x, y, r, delay]) => (
+          <circle
+            key={`${x}-${y}`}
+            cx={x}
+            cy={y}
+            r={r}
+            fill="var(--dusk-ink)"
+            opacity=".45"
+            className="breathe"
+            style={{ animationDelay: `${delay}s` }}
+          />
+        ))}
+
+        {/* orbit rings with a faint comet trail on the outer path */}
         <circle cx="190" cy="190" r="168" fill="none" stroke="rgba(169,167,224,.16)" strokeWidth="1" />
-        <circle cx="190" cy="190" r="120" fill="none" stroke="rgba(169,167,224,.24)" strokeWidth="1" />
-        <circle cx="190" cy="190" r="72" fill="none" stroke="rgba(169,167,224,.34)" strokeWidth="1" />
-        <circle cx="190" cy="190" r="30" fill="rgba(140,138,214,.14)" className="breathe" />
-        <circle cx="190" cy="190" r="16" fill="#EDEBF6" />
-        <text x="190" y="196" textAnchor="middle" fontFamily="var(--serif)" fontSize="18" fill="#35335F">
-          M
-        </text>
-        <g className="spin-fast">
-          <circle cx="262" cy="190" r="6.5" fill="var(--calm)" />
-          <circle cx="118" cy="190" r="5" fill="var(--dusk-ink)" opacity=".8" />
+        <g className="spin-slow">
+          <circle
+            cx="190" cy="190" r="168" fill="none"
+            stroke="rgba(169,167,224,.45)" strokeWidth="1.2" strokeLinecap="round"
+            strokeDasharray="70 986"
+          />
         </g>
+        <circle cx="190" cy="190" r="120" fill="none" stroke="rgba(169,167,224,.24)" strokeWidth="1" />
         <g className="spin-med">
+          <circle
+            cx="190" cy="190" r="120" fill="none"
+            stroke="rgba(217,138,61,.35)" strokeWidth="1.2" strokeLinecap="round"
+            strokeDasharray="52 702"
+          />
+        </g>
+        <circle cx="190" cy="190" r="72" fill="none" stroke="rgba(169,167,224,.34)" strokeWidth="1" />
+
+        {/* the loved one: layered lamplight, a paper core, a quiet heart */}
+        <circle cx="190" cy="190" r="52" fill="url(#core-glow)" className="breathe" />
+        <circle cx="190" cy="190" r="27" fill="rgba(237,235,246,.16)" />
+        <circle cx="190" cy="190" r="20" fill="#FEFCF9" />
+        <path
+          d="M12 21s-7-4.5-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-7 10-7 10Z"
+          transform="translate(177.8, 178.2) scale(1.02)"
+          fill="var(--dusk-3)"
+          fillOpacity=".22"
+          stroke="var(--dusk-2)"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* inner orbit — the daily rhythm */}
+        <g className="spin-fast">
+          <circle cx="262" cy="190" r="13" fill="url(#calm-glow)" />
+          <circle cx="262" cy="190" r="6.5" fill="var(--calm)" />
+          <circle cx="118" cy="190" r="5" fill="var(--dusk-ink)" opacity=".85" />
+        </g>
+        {/* mid orbit — the family */}
+        <g className="spin-med">
+          <circle cx="190" cy="70" r="14" fill="url(#ember-glow)" />
           <circle cx="190" cy="70" r="7" fill="var(--ember)" />
-          <circle cx="296" cy="248" r="5.5" fill="var(--dusk-ink)" opacity=".7" />
+          <circle cx="296" cy="248" r="5.5" fill="var(--dusk-ink)" opacity=".75" />
           <circle cx="96" cy="252" r="4.5" fill="var(--halo)" />
         </g>
+        {/* outer orbit — the wider world */}
         <g className="spin-slow">
-          <circle cx="358" cy="190" r="5" fill="var(--dusk-ink)" opacity=".55" />
-          <circle cx="120" cy="52" r="4" fill="var(--halo)" opacity=".8" />
-          <circle cx="250" cy="336" r="4.5" fill="var(--dusk-ink)" opacity=".5" />
+          <circle cx="358" cy="190" r="5" fill="var(--dusk-ink)" opacity=".6" />
+          <circle cx="120" cy="52" r="4" fill="var(--halo)" opacity=".85" />
+          <circle cx="250" cy="336" r="4.5" fill="var(--dusk-ink)" opacity=".55" />
         </g>
       </svg>
     </div>
@@ -102,7 +170,7 @@ export default function LandingPage() {
 
       {/* ————— thesis ————— */}
       <section className="border-b border-t border-line bg-paper-2 py-20">
-        <div className="mx-auto max-w-[1120px] px-7">
+        <div data-reveal className="mx-auto max-w-[1120px] px-7">
           <Eyebrow className="mb-6">The category</Eyebrow>
           <p className="max-w-[24ch] font-serif text-[clamp(24px,3.6vw,40px)] font-light leading-[1.24] tracking-[-0.01em]">
             Not another app to check. A <b className="font-medium italic">living record</b> of
@@ -132,7 +200,7 @@ export default function LandingPage() {
 
       {/* ————— every family runs a hidden operation ————— */}
       <section id="families" className="py-20">
-        <div className="mx-auto max-w-[1120px] px-7">
+        <div data-reveal className="mx-auto max-w-[1120px] px-7">
           <div className="mb-10 flex flex-col gap-2 md:flex-row md:items-baseline md:gap-4">
             <span className="font-mono text-[12px] tracking-[0.1em] text-dusk-2">01</span>
             <h2 className="flex-1 font-serif text-[clamp(26px,3.4vw,38px)] font-normal leading-[1.08] tracking-[-0.02em]">
@@ -158,7 +226,7 @@ export default function LandingPage() {
                 body: "A check-in that takes one tap. A voice note instead of a form. One button that reaches the whole family in an emergency. Supported — never watched.",
               },
             ].map((card) => (
-              <div key={card.title} className="rounded-orbit border border-line bg-paper-3 p-6 shadow-card">
+              <div key={card.title} className="lift rounded-orbit border border-line bg-paper-3 p-6 shadow-card">
                 <h3 className="font-serif text-[20px] leading-snug text-ink">{card.title}</h3>
                 <p className="mt-3 text-[14.5px] leading-[1.6] text-ink-soft">{card.body}</p>
               </div>
@@ -169,7 +237,7 @@ export default function LandingPage() {
 
       {/* ————— the system, in use ————— */}
       <section id="product" className="border-t border-line bg-paper-2 py-20">
-        <div className="mx-auto max-w-[1120px] px-7">
+        <div data-reveal className="mx-auto max-w-[1120px] px-7">
           <div className="mb-10 flex flex-col gap-2 md:flex-row md:items-baseline md:gap-4">
             <span className="font-mono text-[12px] tracking-[0.1em] text-dusk-2">02</span>
             <h2 className="flex-1 font-serif text-[clamp(26px,3.4vw,38px)] font-normal leading-[1.08] tracking-[-0.02em]">
@@ -294,7 +362,7 @@ export default function LandingPage() {
 
       {/* ————— how it stays calm ————— */}
       <section className="py-20">
-        <div className="mx-auto max-w-[1120px] px-7">
+        <div data-reveal className="mx-auto max-w-[1120px] px-7">
           <div className="mb-10 flex flex-col gap-2 md:flex-row md:items-baseline md:gap-4">
             <span className="font-mono text-[12px] tracking-[0.1em] text-dusk-2">03</span>
             <h2 className="flex-1 font-serif text-[clamp(26px,3.4vw,38px)] font-normal leading-[1.08] tracking-[-0.02em]">
@@ -302,7 +370,7 @@ export default function LandingPage() {
             </h2>
           </div>
           <div className="grid gap-5 md:grid-cols-3">
-            <div className="rounded-orbit border border-line bg-paper-3 p-6">
+            <div className="lift rounded-orbit border border-line bg-paper-3 p-6">
               <h4 className="font-mono text-[13px] font-medium uppercase tracking-[0.06em] text-ink-soft">
                 Alerts mean something
               </h4>
@@ -312,7 +380,7 @@ export default function LandingPage() {
                 against <i>your person&apos;s</i> normal rhythm, not a generic threshold.
               </p>
             </div>
-            <div className="rounded-orbit border border-line bg-paper-3 p-6">
+            <div className="lift rounded-orbit border border-line bg-paper-3 p-6">
               <h4 className="font-mono text-[13px] font-medium uppercase tracking-[0.06em] text-ink-soft">
                 Consent is the foundation
               </h4>
@@ -322,7 +390,7 @@ export default function LandingPage() {
                 on the very next query. Your family&apos;s record belongs to your family.
               </p>
             </div>
-            <div className="rounded-orbit border border-line bg-paper-3 p-6">
+            <div className="lift rounded-orbit border border-line bg-paper-3 p-6">
               <h4 className="font-mono text-[13px] font-medium uppercase tracking-[0.06em] text-ink-soft">
                 A memory that answers
               </h4>
@@ -338,7 +406,7 @@ export default function LandingPage() {
 
       {/* ————— closing CTA ————— */}
       <section className="border-t border-line bg-paper-2 py-20">
-        <div className="mx-auto max-w-[1120px] px-7 text-center">
+        <div data-reveal className="mx-auto max-w-[1120px] px-7 text-center">
           <OrbitMark size={56} className="mx-auto text-dusk" />
           <h2 className="mx-auto mt-6 max-w-[22ch] font-serif text-[clamp(26px,3.6vw,40px)] font-light leading-[1.2] tracking-[-0.01em]">
             Know what is happening. Know who is responsible. Never forget what matters.
