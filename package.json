@@ -1,0 +1,26 @@
+{
+  "name": "kinos",
+  "private": true,
+  "version": "0.1.0",
+  "description": "KinOS — the private family operating system for the people you love.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @kinos/web dev",
+    "build": "pnpm --filter @kinos/web build",
+    "start": "pnpm --filter @kinos/web start",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "lint": "pnpm -r --parallel lint",
+    "test": "pnpm -r --parallel test",
+    "test:engine": "pnpm --filter @kinos/engine test",
+    "language:check": "node scripts/check-language.mjs",
+    "db:seed": "pnpm --filter @kinos/db seed",
+    "db:types": "pnpm --filter @kinos/db gen-types"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3"
+  }
+}

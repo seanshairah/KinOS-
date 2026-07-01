@@ -1,0 +1,117 @@
+/* KinOS — Dusk design tokens. Source of truth: KinOS-brand-system.html.
+   Warm paper under a deep twilight indigo. Colour is a status language:
+   if nothing is wrong, the screen is warm neutral; ember means attention
+   and never appears for nothing. */
+:root {
+  --ink: #211d19;
+  --ink-soft: #5a534b;
+  --ink-faint: #928a7e;
+
+  --paper: #f6f2ec;
+  --paper-2: #fbf8f3;
+  --paper-3: #fefcf9;
+
+  --line: #e6dfd3;
+  --line-2: #d8cfc0;
+
+  --dusk: #35335f;
+  --dusk-2: #4e4b90;
+  --dusk-3: #6c69b8;
+  --halo: #a9a7e0;
+  --dusk-ink: #edebf6;
+
+  --ember: #d98a3d;
+  --ember-soft: #f0d9be;
+
+  --calm: #4e9e7e;
+  --calm-soft: #cfe6db;
+
+  --urgent: #c25642;
+
+  --r-sm: 8px;
+  --r: 13px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+
+  --shadow:
+    0 1px 2px rgba(33, 29, 25, 0.04), 0 8px 24px -12px rgba(33, 29, 25, 0.14);
+  --shadow-lg:
+    0 2px 4px rgba(33, 29, 25, 0.05), 0 24px 60px -28px rgba(53, 51, 95, 0.32);
+
+  --serif: "Newsreader", Georgia, serif;
+  --sans: "Inter", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+::selection {
+  background: var(--dusk-3);
+  color: #fff;
+}
+
+/* Calm, slow, purposeful motion. */
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbit-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.spin-slow {
+  animation: orbit-spin 60s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.spin-med {
+  animation: orbit-spin 40s linear infinite reverse;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.spin-fast {
+  animation: orbit-spin 26s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.breathe {
+  animation: orbit-breathe 6s ease-in-out infinite;
+}
+.reveal {
+  animation: reveal-up 0.7s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin-slow,
+  .spin-med,
+  .spin-fast,
+  .breathe,
+  .reveal {
+    animation: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Keyboard focus — visible, dusk-tinted, AA. */
+:focus-visible {
+  outline: 2px solid var(--dusk-2);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

@@ -1,0 +1,27 @@
+{
+  "name": "KinOS — the private family operating system",
+  "short_name": "KinOS",
+  "description": "The people you love, in one calm orbit.",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#F6F2EC",
+  "theme_color": "#35335F",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
