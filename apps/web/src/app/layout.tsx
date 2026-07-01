@@ -19,6 +19,17 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+// Tolerates a bare hostname in the env var; a malformed value must not fail the build.
+function appUrl(): URL | undefined {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (!raw) return undefined;
+  try {
+    return new URL(raw.includes("://") ? raw : `https://${raw}`);
+  } catch {
+    return undefined;
+  }
+}
+
 export const metadata: Metadata = {
   title: {
     default: "KinOS — the private family operating system",
@@ -28,9 +39,7 @@ export const metadata: Metadata = {
     "KinOS turns scattered life updates — check-ins, receipts, medications, appointments — into quiet awareness. The people you love, in one calm orbit.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/apple-touch-icon.png" },
-  metadataBase: process.env.NEXT_PUBLIC_APP_URL
-    ? new URL(process.env.NEXT_PUBLIC_APP_URL)
-    : undefined,
+  metadataBase: appUrl(),
   openGraph: {
     title: "KinOS — the private family operating system",
     description: "The people you love, in one calm orbit.",
