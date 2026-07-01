@@ -48,19 +48,10 @@ function HeroOrbit() {
         </g>
         <circle cx="190" cy="190" r="72" fill="none" stroke="rgba(169,167,224,.34)" strokeWidth="1" />
 
+        {/* the loved one: a steady centre node in lamplight, per the mark */}
         <circle cx="190" cy="190" r="52" fill="url(#core-glow)" className="breathe" />
         <circle cx="190" cy="190" r="27" fill="rgba(237,235,246,.16)" />
-        <circle cx="190" cy="190" r="20" fill="#FEFCF9" />
-        <path
-          d="M12 21s-7-4.5-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-7 10-7 10Z"
-          transform="translate(177.8, 178.2) scale(1.02)"
-          fill="var(--dusk-3)"
-          fillOpacity=".22"
-          stroke="var(--dusk-2)"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        <circle cx="190" cy="190" r="11" fill="#FEFCF9" />
 
         <g className="spin-fast">
           <circle cx="262" cy="190" r="13" fill="url(#calm-glow)" />
