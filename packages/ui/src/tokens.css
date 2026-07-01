@@ -107,6 +107,52 @@
   opacity: 1;
   transform: none;
 }
+/* Aurora — slow drifting light behind the dusk hero. */
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.1);
+  }
+}
+.aurora {
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  filter: blur(70px);
+}
+.aurora-a {
+  background: radial-gradient(38% 38% at 72% 28%, rgba(140, 138, 214, 0.4), transparent 70%);
+  animation: aurora-drift 26s ease-in-out infinite;
+}
+.aurora-b {
+  background: radial-gradient(32% 32% at 22% 78%, rgba(217, 138, 61, 0.16), transparent 70%);
+  animation: aurora-drift 36s ease-in-out infinite reverse;
+}
+@keyframes cue-drop {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(7px);
+    opacity: 0.4;
+  }
+}
+.scroll-cue {
+  animation: cue-drop 2.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-a,
+  .aurora-b,
+  .scroll-cue {
+    animation: none !important;
+  }
+}
+
 /* Cards that gently rise to meet the hand. */
 .lift {
   transition:
