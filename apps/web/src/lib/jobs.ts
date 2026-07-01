@@ -2,6 +2,7 @@ import {
   composeBriefActions,
   composeBriefFacts,
   decideEscalation,
+  detectPattern,
   type BriefInput,
 } from "@kinos/engine";
 import { writeBrief } from "@kinos/ai";
@@ -229,5 +230,49 @@ export async function escalationSweep(): Promise<number> {
       );
     }
     return due.rows.length;
+  });
+}
+
+/** Weekly: plain-language trend cards against personal baselines. */
+export async function generatePatterns(): Promise<number> {
+  return withService(async (db) => {
+    const subjects = await db.query(`select id, display_name from care_subject`);
+    let written = 0;
+
+    for (const subject of subjects.rows) {
+      const metrics = await db.query(
+        `select value->>'metric' as metric, (value->>'value')::numeric as v
+         from life_signal
+         where subject_id = $1 and signal_type = 'metric'
+           and value->>'metric' is not null and value->>'value' is not null
+           and occurred_at > now() - interval '60 days'
+         order by occurred_at asc
+         limit 500`,
+        [subject.id],
+      );
+      const byMetric = new Map<string, number[]>();
+      for (const row of metrics.rows) {
+        const list = byMetric.get(row.metric) ?? [];
+        list.push(Number(row.v));
+        byMetric.set(row.metric, list);
+      }
+
+      for (const [metric, values] of byMetric) {
+        const pattern = detectPattern(metric, values, subject.display_name);
+        if (!pattern) continue; // too little history — stay quiet
+        // One current card per metric/window; replace, never pile up.
+        await db.query(
+          `delete from pattern where subject_id = $1 and metric = $2 and "window" = $3`,
+          [subject.id, pattern.metric, pattern.window],
+        );
+        await db.query(
+          `insert into pattern (subject_id, metric, direction, summary, "window")
+           values ($1, $2, $3, $4, $5)`,
+          [subject.id, pattern.metric, pattern.direction, pattern.summary, pattern.window],
+        );
+        written++;
+      }
+    }
+    return written;
   });
 }

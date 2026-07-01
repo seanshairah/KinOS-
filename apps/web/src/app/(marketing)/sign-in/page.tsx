@@ -12,13 +12,23 @@ async function sendMagicLink(formData: FormData) {
   "use server";
   const email = String(formData.get("email") ?? "").trim();
   if (!email) redirect("/sign-in?error=email");
-  await signIn("resend", { email, redirectTo: "/app", redirect: false });
+  // Honour a same-site ?next= target (e.g. an invite link) after sign-in.
+  const rawNext = String(formData.get("next") ?? "");
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/app";
+  await signIn("resend", { email, redirectTo: next, redirect: false });
   redirect("/sign-in/sent");
 }
 
-export default async function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
   if (!isDatabaseConfigured()) redirect("/setup");
-  if (await currentUserId()) redirect("/app");
+  if (await currentUserId()) {
+    redirect(next && next.startsWith("/") && !next.startsWith("//") ? next : "/app");
+  }
 
   return (
     <section className="flex min-h-[70vh] items-center py-16">
@@ -33,6 +43,7 @@ export default async function SignInPage() {
           calm starts here.
         </p>
         <form action={sendMagicLink} className="mt-7 flex flex-col gap-3">
+          <input type="hidden" name="next" value={next ?? ""} />
           <label htmlFor="email" className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
             Email address
           </label>

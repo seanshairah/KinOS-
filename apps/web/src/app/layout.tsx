@@ -28,6 +28,21 @@ export const metadata: Metadata = {
     "KinOS turns scattered life updates — check-ins, receipts, medications, appointments — into quiet awareness. The people you love, in one calm orbit.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/apple-touch-icon.png" },
+  metadataBase: process.env.NEXT_PUBLIC_APP_URL
+    ? new URL(process.env.NEXT_PUBLIC_APP_URL)
+    : undefined,
+  openGraph: {
+    title: "KinOS — the private family operating system",
+    description: "The people you love, in one calm orbit.",
+    type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "KinOS — the people you love, in one calm orbit" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KinOS — the private family operating system",
+    description: "The people you love, in one calm orbit.",
+    images: ["/og.png"],
+  },
 };
 
 export const viewport: Viewport = {

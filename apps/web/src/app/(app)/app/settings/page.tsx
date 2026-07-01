@@ -6,6 +6,7 @@ import {
 import { PLANS, type PlanId } from "@kinos/config";
 import { Eyebrow, Panel, Pill } from "@kinos/ui";
 
+import { EnableNotifications } from "@/components/enable-notifications";
 import { requireFamilyContext } from "@/lib/data/context";
 import {
   listAccessLog,
@@ -50,6 +51,19 @@ export default async function SettingsPage() {
           {plan.name} plan · you are {ROLE_LABEL[ctx.member.role]?.toLowerCase()}
         </p>
       </div>
+
+      {/* notifications */}
+      <Panel className="flex flex-col gap-3">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+          Notifications
+        </h2>
+        <p className="text-[13px] leading-relaxed text-ink-soft">
+          Attention items, escalations and the Daily Brief can reach this device. KinOS
+          only speaks up when something genuinely needs you — and never during quiet hours
+          unless it&apos;s urgent.
+        </p>
+        <EnableNotifications vapidPublicKey={process.env.WEB_PUSH_VAPID_PUBLIC_KEY ?? null} />
+      </Panel>
 
       {/* members */}
       <Panel className="flex flex-col gap-3">

@@ -60,6 +60,47 @@ export default async function OrbitViewPage() {
 
   const orbits = await listOrbits(userId);
 
+  // The person being cared for gets a big, simple home: check in, reach
+  // the family, read today's words. Supported — never dashboarded.
+  if (ctx.member.role === "care_recipient" && orbits.length > 0) {
+    const mine = orbits[0]!;
+    const myBrief = await withUser(userId, async (db) => {
+      const res = await db.query(
+        `select body from daily_brief where subject_id = $1 order by created_at desc limit 1`,
+        [mine.subject.id],
+      );
+      return res.rows[0]?.body as string | undefined;
+    });
+    return (
+      <div className="mx-auto flex max-w-[560px] flex-col gap-8 pt-4">
+        <div className="text-center">
+          <Eyebrow>Good day</Eyebrow>
+          <h1 className="mt-2 font-serif text-[38px] font-light leading-[1.15]">
+            Hello{ctx.member.display_name ? `, ${ctx.member.display_name}` : ""}.
+          </h1>
+          <p className="mt-2 text-[17px] text-ink-soft">Your family is thinking of you.</p>
+        </div>
+        <Link
+          href={`/app/orbits/${mine.subject.id}/check-in`}
+          className="rounded-orbit bg-dusk px-8 py-7 text-center text-[22px] font-semibold text-white no-underline shadow-float hover:bg-dusk-2"
+        >
+          Check in for today
+        </Link>
+        <Link
+          href={`/app/emergency?subject=${mine.subject.id}`}
+          className="rounded-orbit border-2 border-urgent/50 bg-paper-3 px-8 py-6 text-center text-[19px] font-semibold text-urgent no-underline hover:bg-[#fdf1ee]"
+        >
+          I need the family now
+        </Link>
+        {myBrief && (
+          <Panel>
+            <BriefBlock meta="Today, in the family's words">{myBrief}</BriefBlock>
+          </Panel>
+        )}
+      </div>
+    );
+  }
+
   // The latest brief across orbits, for the home surface.
   const latestBrief = await withUser(userId, async (db) => {
     const res = await db.query(
