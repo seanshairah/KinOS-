@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { OrbitMark, Wordmark } from "@kinos/ui";
+import { RevealOnScroll } from "@/components/reveal";
 
 const SAFETY_LINE =
   "KinOS is a family coordination and life-awareness platform. It is not a medical device, diagnosis tool, emergency service, or replacement for healthcare professionals. If something seems urgent, contact local emergency or medical services.";
@@ -7,6 +8,7 @@ const SAFETY_LINE =
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <RevealOnScroll />
       <nav className="sticky top-0 z-50 border-b border-line bg-paper/80 backdrop-blur-md">
         <div className="mx-auto flex h-[62px] max-w-[1120px] items-center justify-between px-7">
           <Link href="/" className="flex items-center gap-3 no-underline">

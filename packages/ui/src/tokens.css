@@ -95,6 +95,28 @@
 .reveal {
   animation: reveal-up 0.7s ease both;
 }
+/* Scroll reveal (JS-applied; content is never hidden without JS). */
+.reveal-pending {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+.reveal-pending.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+/* Cards that gently rise to meet the hand. */
+.lift {
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease;
+}
+.lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .spin-slow,
