@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Typecheck · lint · language guard · unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Language guard (no machine language in the product)
+        run: node scripts/check-language.mjs
+      - name: Typecheck
+        run: pnpm -r typecheck
+      - name: Lint
+        run: pnpm -r lint
+      - name: Unit tests (engine · payments · intelligence layer)
+        run: pnpm -r test
+
+  db-policy:
+    name: Migrations · RLS policy suite · e2e activation
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: kinos
+          POSTGRES_PASSWORD: kinos
+          POSTGRES_DB: kinos_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kinos"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://kinos:kinos@localhost:5432/kinos_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply migrations
+        run: pnpm --filter @kinos/db migrate
+      - name: RLS policy tests (consent enforced in Postgres)
+        run: pnpm --filter @kinos/db test
+        env:
+          RLS_TEST_DATABASE_URL: postgres://kinos:kinos@localhost:5432/kinos_ci
+      - name: Build web app
+        run: pnpm --filter @kinos/web build
+      - name: Install Playwright Chromium
+        run: pnpm --filter @kinos/web exec playwright install --with-deps chromium
+      - name: E2E (marketing + activation flow)
+        run: pnpm --filter @kinos/web e2e
+        env:
+          E2E_DATABASE_URL: postgres://kinos:kinos@localhost:5432/kinos_ci
+          CI: "true"
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @kinos/web build

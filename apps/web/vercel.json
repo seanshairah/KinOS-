@@ -1,0 +1,8 @@
+{
+  "crons": [
+    { "path": "/api/jobs/morning-brief", "schedule": "0 5 * * *" },
+    { "path": "/api/jobs/evening-brief", "schedule": "0 17 * * *" },
+    { "path": "/api/jobs/attention-sweep", "schedule": "*/15 * * * *" },
+    { "path": "/api/jobs/escalation-sweep", "schedule": "*/15 * * * *" }
+  ]
+}
