@@ -8,7 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
-    "test": "vitest run",
+    "test": "echo 'web: covered by the e2e suite (pnpm --filter @kinos/web e2e)'",
     "e2e": "playwright test"
   },
   "dependencies": {
