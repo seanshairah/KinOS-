@@ -40,6 +40,8 @@ export interface BriefFacts {
   upcoming: { title: string; when: string; transportConfirmed: boolean }[];
   openDuties: { title: string; owner?: string }[];
   moneyNote?: string;
+  /** Calm health observations from the last day, already consent-filtered. */
+  healthNotes?: string[];
 }
 
 export interface BriefInput {
@@ -52,6 +54,7 @@ export interface BriefInput {
   dosesTaken: number;
   dosesOpen: number;
   moneyNote?: string;
+  healthNotes?: string[];
 }
 
 const MOOD_PHRASE: Record<string, string> = {
@@ -94,6 +97,7 @@ export function composeBriefFacts(input: BriefInput): BriefFacts {
       owner: d.ownerName ?? undefined,
     })),
     moneyNote: input.moneyNote,
+    healthNotes: input.healthNotes?.slice(0, 2),
   };
 }
 
@@ -117,6 +121,10 @@ export function composeBriefText(facts: BriefFacts): string {
         ? "One dose is still open."
         : `${facts.dosesOpen} doses are still open.`,
     );
+  }
+
+  for (const note of facts.healthNotes ?? []) {
+    parts.push(note.endsWith(".") ? note : `${note}.`);
   }
 
   for (const u of facts.upcoming.slice(0, 2)) {

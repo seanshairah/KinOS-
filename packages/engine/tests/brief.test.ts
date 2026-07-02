@@ -138,4 +138,21 @@ describe("brief engine", () => {
     expect(text).toContain("No check-in from Mum yet today.");
     expect(text).not.toMatch(/alert|urgent|risk/i);
   });
+
+  it("weaves consent-filtered health notes in calmly, capped at two", () => {
+    const facts = composeBriefFacts(
+      input({
+        healthNotes: [
+          "Blood pressure — caught early, easily managed",
+          "Mum has had 3 short nights in a row.",
+          "A third note that should be dropped",
+        ],
+      }),
+    );
+    expect(facts.healthNotes).toHaveLength(2);
+    const text = composeBriefText(facts);
+    expect(text).toContain("Blood pressure — caught early, easily managed.");
+    expect(text).toContain("Mum has had 3 short nights in a row.");
+    expect(text).not.toContain("third note");
+  });
 });

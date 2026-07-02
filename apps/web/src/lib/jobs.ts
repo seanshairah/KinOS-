@@ -72,6 +72,16 @@ export async function generateBriefs(kind: "morning" | "evening"): Promise<numbe
         [subject.id],
       );
 
+      // Health notes honour the per-metric dial: briefs are family-visible,
+      // so metrics dialled to 'status' contribute nothing here.
+      const healthNotes = await db.query(
+        `select summary from health_observation
+         where subject_id = $1 and created_at > now() - interval '24 hours'
+           and health_share_level(subject_id, metric) <> 'status'
+         order by created_at desc limit 2`,
+        [subject.id],
+      );
+
       const input: BriefInput = {
         subject: {
           id: subject.id,
@@ -123,6 +133,7 @@ export async function generateBriefs(kind: "morning" | "evening"): Promise<numbe
         })),
         dosesTaken: doses.rows[0]?.taken ?? 0,
         dosesOpen: openDoseCount.rows[0]?.open ?? 0,
+        healthNotes: healthNotes.rows.map((r) => r.summary as string),
       };
 
       const facts = composeBriefFacts(input);

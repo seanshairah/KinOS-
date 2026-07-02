@@ -6,9 +6,11 @@ import {
   createDutyForm,
   logDoseForm,
   resolveAttentionForm,
+  setHealthSharingForm,
 } from "@/lib/actions/forms";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { withUser } from "@kinos/db";
 import { formatSignalTime } from "@kinos/config";
 import {
   AttentionItem,
@@ -193,9 +195,34 @@ export default async function OrbitDetailPage({
   if (!detail) notFound();
 
   const { subject, signals, attention, duties, medications, dosesToday, appointments, brief, patterns, members } = detail;
-  const deviceLinked = ["admin", "care_recipient"].includes(ctx.member.role)
-    ? await hasDeviceLink(subject.id)
-    : false;
+  const canManageHealth = ["admin", "care_recipient"].includes(ctx.member.role);
+  const deviceLinked = canManageHealth ? await hasDeviceLink(subject.id) : false;
+  // Observations and dials pass through RLS — each viewer sees exactly what
+  // the consent dial allows, and nothing here re-decides that.
+  const { healthObservations, healthDials } = await withUser(ctx.userId, async (db) => {
+    const obs = await db.query(
+      `select id, summary, detail, created_at from health_observation
+       where subject_id = $1 order by created_at desc limit 3`,
+      [subject.id],
+    );
+    const dials = canManageHealth
+      ? await db.query(
+          `select metric, level from health_share_scope where subject_id = $1`,
+          [subject.id],
+        )
+      : { rows: [] };
+    return {
+      healthObservations: obs.rows as { id: string; summary: string; detail: string | null; created_at: Date }[],
+      healthDials: new Map((dials.rows as { metric: string; level: string }[]).map((r) => [r.metric, r.level])),
+    };
+  });
+  const HEALTH_METRICS: { metric: string; label: string }[] = [
+    { metric: "blood_pressure", label: "Blood pressure" },
+    { metric: "heart_rate", label: "Heart rate" },
+    { metric: "sleep_minutes", label: "Sleep" },
+    { metric: "steps", label: "Movement" },
+    { metric: "weight", label: "Weight" },
+  ];
   const status = attention.some((a) => a.severity === "urgent")
     ? ("urgent" as const)
     : attention.length > 0
@@ -482,30 +509,84 @@ export default async function OrbitDetailPage({
         </details>
       </Panel>
 
-      {/* health devices — quiet plumbing, shown to those who can link one */}
-      {["admin", "care_recipient"].includes(ctx.member.role) && (
+      {/* health — quiet notes for those the dial allows; controls for those who hold it */}
+      {(canManageHealth || healthObservations.length > 0) && (
         <Panel className="flex flex-col gap-3">
-          <Eyebrow>Health devices</Eyebrow>
-          {deviceLinked ? (
-            <p className="text-[13.5px] leading-relaxed text-ink-soft">
-              A device is connected. Blood pressure and weight readings flow into{" "}
-              {subject.display_name}&apos;s orbit on their own — the family only hears
-              about them when a pattern is genuinely worth a check.
-            </p>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="max-w-[46ch] text-[13.5px] leading-relaxed text-ink-soft">
-                Link a blood-pressure cuff or scale and readings arrive without anyone
-                typing a number. Who sees what stays under {subject.display_name}&apos;s
-                consent.
-              </p>
-              <a
-                href={`/api/integrations/withings/connect?subject=${subject.id}`}
-                className="lift rounded-pill bg-white px-4 py-2 text-[13px] font-semibold text-dusk no-underline"
-              >
-                Link a device
-              </a>
+          <Eyebrow>Health</Eyebrow>
+          {healthObservations.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {healthObservations.map((o) => (
+                <p key={o.id} className="border-t border-line pt-2 font-serif text-[15.5px] leading-relaxed first:border-t-0 first:pt-0">
+                  {o.summary}
+                  {o.detail && (
+                    <span className="mt-0.5 block font-mono text-[11px] normal-case text-ink-faint">{o.detail}</span>
+                  )}
+                </p>
+              ))}
             </div>
+          )}
+          {canManageHealth && (
+            <>
+              {deviceLinked ? (
+                <p className="text-[13.5px] leading-relaxed text-ink-soft">
+                  A device is connected. Readings flow into {subject.display_name}&apos;s
+                  orbit on their own — the family only hears about them when a pattern is
+                  genuinely worth a check.
+                </p>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="max-w-[46ch] text-[13.5px] leading-relaxed text-ink-soft">
+                    Link a blood-pressure cuff or scale and readings arrive without anyone
+                    typing a number. Who sees what stays under {subject.display_name}&apos;s
+                    consent.
+                  </p>
+                  <a
+                    href={`/api/integrations/withings/connect?subject=${subject.id}`}
+                    className="lift rounded-pill bg-white px-4 py-2 text-[13px] font-semibold text-dusk no-underline"
+                  >
+                    Link a device
+                  </a>
+                </div>
+              )}
+              <details>
+                <summary className="cursor-pointer text-[12.5px] font-medium text-dusk-2">
+                  Who sees what
+                </summary>
+                <p className="mt-2 max-w-[52ch] text-[12.5px] leading-relaxed text-ink-faint">
+                  Per measurement, choose what health-consented family members see:
+                  the numbers themselves, quiet notes only, or nothing beyond
+                  &quot;needs attention&quot;. {subject.display_name} and admins hold this dial.
+                </p>
+                <div className="mt-3 flex flex-col gap-2">
+                  {HEALTH_METRICS.map(({ metric, label }) => (
+                    <form
+                      key={metric}
+                      action={setHealthSharingForm}
+                      className="flex items-center justify-between gap-3 border-t border-line pt-2 first:border-t-0 first:pt-0"
+                    >
+                      <input type="hidden" name="subjectId" value={subject.id} />
+                      <input type="hidden" name="metric" value={metric} />
+                      <span className="text-[13.5px]">{label}</span>
+                      <span className="flex items-center gap-2">
+                        <select
+                          name="level"
+                          defaultValue={healthDials.get(metric) ?? "observations"}
+                          className={inputClass}
+                          aria-label={`${label} sharing level`}
+                        >
+                          <option value="readings">The numbers</option>
+                          <option value="observations">Quiet notes only</option>
+                          <option value="status">Status only</option>
+                        </select>
+                        <button className="rounded-pill bg-dusk px-3.5 py-1.5 text-[12.5px] font-medium text-white">
+                          Save
+                        </button>
+                      </span>
+                    </form>
+                  ))}
+                </div>
+              </details>
+            </>
           )}
         </Panel>
       )}
