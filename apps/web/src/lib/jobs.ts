@@ -276,3 +276,14 @@ export async function generatePatterns(): Promise<number> {
     return written;
   });
 }
+
+/** Every 15 minutes: turn parked device notifications into readings, and
+ * let expired raw readings fall off their retention clock. */
+export async function healthSync(): Promise<number> {
+  const { processParkedNotifications } = await import("./integrations/withings");
+  const processed = await processParkedNotifications();
+  await withService((db) =>
+    db.query(`delete from health_reading where expires_at < now()`),
+  ).catch(() => {});
+  return processed;
+}

@@ -25,6 +25,7 @@ import { OrbitSystem, type SatelliteSpec } from "@/components/orbit/orbit-system
 import { CalmEmpty, PaperBrief, StatusWord } from "@/components/rooms";
 import { requireFamilyContext } from "@/lib/data/context";
 import { getOrbitDetail, type OrbitDetail } from "@/lib/data/orbits";
+import { hasDeviceLink } from "@/lib/health";
 
 const inputClass =
   "rounded-card border border-line bg-[#211f42]/60 px-3 py-2 text-[13.5px] text-ink placeholder:text-ink-faint focus:border-halo/60 focus:outline-none";
@@ -192,6 +193,9 @@ export default async function OrbitDetailPage({
   if (!detail) notFound();
 
   const { subject, signals, attention, duties, medications, dosesToday, appointments, brief, patterns, members } = detail;
+  const deviceLinked = ["admin", "care_recipient"].includes(ctx.member.role)
+    ? await hasDeviceLink(subject.id)
+    : false;
   const status = attention.some((a) => a.severity === "urgent")
     ? ("urgent" as const)
     : attention.length > 0
@@ -477,6 +481,34 @@ export default async function OrbitDetailPage({
           </form>
         </details>
       </Panel>
+
+      {/* health devices — quiet plumbing, shown to those who can link one */}
+      {["admin", "care_recipient"].includes(ctx.member.role) && (
+        <Panel className="flex flex-col gap-3">
+          <Eyebrow>Health devices</Eyebrow>
+          {deviceLinked ? (
+            <p className="text-[13.5px] leading-relaxed text-ink-soft">
+              A device is connected. Blood pressure and weight readings flow into{" "}
+              {subject.display_name}&apos;s orbit on their own — the family only hears
+              about them when a pattern is genuinely worth a check.
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="max-w-[46ch] text-[13.5px] leading-relaxed text-ink-soft">
+                Link a blood-pressure cuff or scale and readings arrive without anyone
+                typing a number. Who sees what stays under {subject.display_name}&apos;s
+                consent.
+              </p>
+              <a
+                href={`/api/integrations/withings/connect?subject=${subject.id}`}
+                className="lift rounded-pill bg-white px-4 py-2 text-[13px] font-semibold text-dusk no-underline"
+              >
+                Link a device
+              </a>
+            </div>
+          )}
+        </Panel>
+      )}
 
       {/* patterns */}
       {patterns.length > 0 && (
