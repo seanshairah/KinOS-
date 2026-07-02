@@ -273,8 +273,22 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ————— rewind: the horizon turns, night back into afternoon ————— */}
-      <HorizonArc variant="rewind" caption="rewind to this afternoon" />
+      {/* ————— rewind: one continuous sky, night easing back into
+                this afternoon — no boundary at all ————— */}
+      <div
+        aria-hidden
+        className="relative h-72 md:h-96"
+        style={{
+          background:
+            "radial-gradient(80% 85% at 8% 100%, #93A9CC4D, transparent 60%)," +
+            "radial-gradient(80% 85% at 92% 100%, #E5B07859, transparent 60%)," +
+            `linear-gradient(180deg, ${NIGHT} 0%, #34315C 18%, #454273 36%, #5D5A94 54%, #7E82AC 72%, #93A0C0 86%, #A9B6D1 100%)`,
+        }}
+      >
+        <p className="absolute inset-x-0 top-[34%] text-center font-mono text-[11.5px] uppercase tracking-[0.22em] text-white/70">
+          rewind to this afternoon
+        </p>
+      </div>
 
       {/* ————— 5.2 → 5.9 the evening itself ————— */}
       <section id="story" aria-label="One evening with a family">

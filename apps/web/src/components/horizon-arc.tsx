@@ -12,18 +12,12 @@ import { useEffect, useRef, useState } from "react";
  * continuous canvas with one beautiful, visible seam.
  */
 
-type Variant = "rewind" | "dawn" | "nightfall";
+type Variant = "dawn" | "nightfall";
 
 const NIGHT = "#2C2A4F";
 const DAY = "#FBF8F3";
 
 const SKY: Record<Variant, { gradient: string; fill: string; captionColor: string }> = {
-  // hero night brightening back toward the story's first afternoon
-  rewind: {
-    gradient: `linear-gradient(180deg, ${NIGHT} 0%, #3B3866 34%, #56588C 62%, #7E86AF 84%, #93A0C0 100%)`,
-    fill: "#A9B6D1",
-    captionColor: "rgba(255,255,255,.72)",
-  },
   // the story's night opening into warm morning paper
   dawn: {
     gradient: `linear-gradient(180deg, ${NIGHT} 0%, #3A3765 36%, #5D5786 64%, #8F8299 84%, #B4A6A6 100%)`,
@@ -46,10 +40,35 @@ const ORBS = [
   { offset: 0.82, speed: 0.0095, r: 3.4, color: "#D9A05B", glow: 0.35 },
 ] as const;
 
-const ARC = "M -20 158 Q 720 34 1460 158";
+/**
+ * The horizon line is organic, not geometric: two gentle sine waves of
+ * different frequencies laid over a soft crest, so no two stretches of
+ * the curve repeat. Deterministic phases keep it stable across renders;
+ * each variant gets its own character.
+ */
+function wavePath(phase: number): string {
+  const points: string[] = [];
+  const N = 96;
+  for (let i = 0; i <= N; i++) {
+    const x = -20 + (1480 * i) / N;
+    const t = i / N;
+    const crest = 42 * Math.sin(Math.PI * t); // the broad lift of a horizon
+    const wave1 = 16 * Math.sin(t * Math.PI * 2 * 1.7 + phase);
+    const wave2 = 9 * Math.sin(t * Math.PI * 2 * 3.3 + phase * 2.1 + 1.2);
+    const y = 150 - crest - wave1 - wave2;
+    points.push(`${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`);
+  }
+  return points.join(" ");
+}
+
+const ARCS: Record<Variant, string> = {
+  dawn: wavePath(0.7),
+  nightfall: wavePath(2.3),
+};
 
 export function HorizonArc({ variant, caption }: { variant: Variant; caption?: string }) {
   const sky = SKY[variant];
+  const arc = ARCS[variant];
   const pathRef = useRef<SVGPathElement>(null);
   const orbRefs = useRef<(SVGCircleElement | null)[]>([]);
   const glowRefs = useRef<(SVGCircleElement | null)[]>([]);
@@ -118,19 +137,6 @@ export function HorizonArc({ variant, caption }: { variant: Variant; caption?: s
       className="relative h-72 w-full overflow-hidden md:h-96"
       style={{ background: sky.gradient }}
     >
-      {variant === "rewind" && (
-        <>
-          {/* the two cities, already glowing at the afternoon's edges */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(56% 64% at 6% 96%, rgba(147,169,204,.42), transparent 62%)," +
-                "radial-gradient(56% 64% at 94% 96%, rgba(229,176,120,.46), transparent 62%)",
-            }}
-          />
-        </>
-      )}
       {/* a breath of warmth where the skies meet */}
       <div
         className="absolute inset-0"
@@ -158,11 +164,11 @@ export function HorizonArc({ variant, caption }: { variant: Variant; caption?: s
         </defs>
 
         {/* the next part of the day, rising to meet you */}
-        <path d={`${ARC} L 1460 240 L -20 240 Z`} fill={sky.fill} />
+        <path d={`${arc} L 1460 240 L -20 240 Z`} fill={sky.fill} />
 
         {/* the orbit's soft light, then its fine visible line */}
         <path
-          d={ARC}
+          d={arc}
           fill="none"
           stroke={`url(#arc-line-${variant})`}
           strokeWidth="9"
@@ -171,7 +177,7 @@ export function HorizonArc({ variant, caption }: { variant: Variant; caption?: s
         />
         <path
           ref={pathRef}
-          d={ARC}
+          d={arc}
           fill="none"
           stroke={`url(#arc-line-${variant})`}
           strokeWidth="1.3"
