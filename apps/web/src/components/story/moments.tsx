@@ -37,6 +37,8 @@ export function ChatChaos({ t, dissolve }: { t: number; dissolve: number }) {
         // Dissolving worry drifts toward the centre and condenses to a dot.
         const cx = 46 - w.x;
         const cy = 36 - w.y;
+        // Worry condenses into a small signal light on its way to the orbit.
+        const spark = Math.sin(Math.min(gone, 1) * Math.PI);
         return (
           <div
             key={w.text}
@@ -46,12 +48,13 @@ export function ChatChaos({ t, dissolve }: { t: number; dissolve: number }) {
               top: `${w.y}%`,
               ["--bob-tilt" as string]: `${w.tilt}deg`,
               animationDelay: `${i * 0.7}s`,
-              opacity: arrive * (1 - gone),
+              opacity: arrive,
             }}
           >
             <div
               className="max-w-[240px] rounded-card rounded-bl-sm border border-line bg-paper-3 px-4 py-2.5 text-[13px] leading-snug text-ink-soft shadow-card"
               style={{
+                opacity: 1 - gone,
                 transform: `translate(${cx * gone}%, ${cy * gone}%) scale(${1 - 0.82 * gone})`,
                 transition: "transform .1s linear",
               }}
@@ -59,6 +62,17 @@ export function ChatChaos({ t, dissolve }: { t: number; dissolve: number }) {
               {w.text}
               <span className="mt-1 block font-mono text-[9.5px] text-ink-faint">delivered · no reply</span>
             </div>
+            <span
+              aria-hidden
+              className="absolute h-2 w-2 rounded-full"
+              style={{
+                left: `${cx * gone * 2.4}px`,
+                top: `${cy * gone * 2.4}px`,
+                background: "#A9A7E0",
+                boxShadow: "0 0 12px rgba(169,167,224,.8)",
+                opacity: spark,
+              }}
+            />
           </div>
         );
       })}
@@ -75,10 +89,22 @@ export function ChatChaos({ t, dissolve }: { t: number; dissolve: number }) {
 /* ————— 5.4 first check-in ————— */
 
 export function CheckInMoment({ t }: { t: number }) {
-  const flash = ease(span(t, 0, 0.3));
-  const card = ease(span(t, 0.2, 0.65));
+  const travel = ease(span(t, 0, 0.22));
+  const flash = ease(span(t, 0.18, 0.4));
+  const card = ease(span(t, 0.3, 0.68));
   return (
-    <div className="mx-auto w-full max-w-[400px]">
+    <div className="relative mx-auto w-full max-w-[400px]">
+      {/* the check-in leaves Harare and arrives at the family's centre */}
+      <span
+        aria-hidden
+        className="absolute -top-8 h-2.5 w-2.5 rounded-full"
+        style={{
+          left: `calc(${96 - travel * 46}% )`,
+          background: "#EDEBF6",
+          boxShadow: "0 0 14px rgba(237,235,246,.85)",
+          opacity: t <= 0.01 ? 0 : 0.95 * (1 - ease(span(t, 0.32, 0.46))),
+        }}
+      />
       <p
         className="mb-3 text-center font-mono text-[12px] tracking-[0.14em] text-halo"
         style={{ opacity: flash }}
@@ -186,9 +212,22 @@ const LEDGER = [
 ] as const;
 
 export function MoneyPotMoment({ t }: { t: number }) {
-  const card = ease(span(t, 0, 0.3));
+  const card = ease(span(t, 0, 0.28));
+  // The receipt the family already saw flows down into the pot.
+  const flow = ease(span(t, 0.14, 0.44));
   return (
-    <div className="mx-auto w-full max-w-[400px]" style={LIT}>
+    <div className="relative mx-auto w-full max-w-[400px]" style={LIT}>
+      <div className="pointer-events-none absolute inset-x-0 -top-12 flex justify-center" aria-hidden>
+        <span
+          className="rounded-pill border border-line bg-paper-3 px-3.5 py-1.5 font-mono text-[11.5px] text-ink-soft shadow-card"
+          style={{
+            opacity: flow > 0 ? 1 - ease(span(flow, 0.82, 1)) : 0,
+            transform: `translateY(${flow * 74}px) scale(${1 - flow * 0.25})`,
+          }}
+        >
+          receipt · USD 23.50
+        </span>
+      </div>
       <div
         className="overflow-hidden rounded-[20px] border border-line-2 bg-paper-3 shadow-float"
         style={{ opacity: card, transform: `translateY(${(1 - card) * 24}px)` }}
@@ -257,7 +296,7 @@ export function AttentionMoment({ t }: { t: number }) {
             icon={<ClockIcon />}
             title="Attention needed: transport not confirmed"
             detail="Tomorrow's clinic review · 10:00 · Avenues Clinic"
-            owner="Owner: Sarah · Escalates quietly at 20:00"
+            owner="Owner: Sarah · Action: confirm transport · Escalates quietly at 20:00"
           />
           <p className="mt-3 text-center font-mono text-[11px] text-ink-faint">
             one thing. not ten. calm and precise.
@@ -307,14 +346,23 @@ export function DutyResolution({ t }: { t: number }) {
           </div>
         </div>
       </div>
-      <div className="mt-4 flex justify-center" aria-hidden>
+      {/* the duty settles onto Sarah's satellite, and the ember calms */}
+      <div className="mt-4 flex items-center justify-center gap-2.5" aria-hidden>
         <span
           className="orbit-pulse block h-3 w-3 rounded-full transition-all duration-700"
           style={{
             background: confirmed ? "#4E9E7E" : "#D98A3D",
             boxShadow: confirmed ? "0 0 18px rgba(78,158,126,.55)" : "0 0 18px rgba(217,138,61,.55)",
+            transform: taken ? "none" : "translateX(14px)",
+            transition: "transform .7s cubic-bezier(.22,1,.36,1), background .7s ease, box-shadow .7s ease",
           }}
         />
+        <span
+          className="font-mono text-[10.5px] tracking-[0.1em] text-halo transition-opacity duration-500"
+          style={{ opacity: taken ? 1 : 0 }}
+        >
+          {confirmed ? "settled with Sarah ✓" : "moving to Sarah…"}
+        </span>
       </div>
       <p
         className="mt-3 text-center text-[13.5px] text-[#c9c6e4]"
