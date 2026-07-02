@@ -29,7 +29,11 @@ function stateSecret(): string {
 }
 
 function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "https://kin-os-web.vercel.app";
+  const url = process.env.NEXT_PUBLIC_APP_URL;
+  // Guard against placeholder values: only trust a real absolute URL.
+  return url && /^https:\/\/[^\s<>]+$/.test(url)
+    ? url.replace(/\/$/, "")
+    : "https://kin-os-web.vercel.app";
 }
 
 export function callbackUrl(): string {

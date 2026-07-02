@@ -95,7 +95,11 @@ export async function createOrbitAction(formData: FormData): Promise<ActionResul
 }
 
 const inviteSchema = z.object({
-  email: z.string().email(),
+  // Email is optional: the natural motion is a link shared in the family
+  // chat. An address only adds email delivery when it's configured.
+  email: z
+    .union([z.string().email(), z.literal("")])
+    .transform((v) => (v === "" ? null : v)),
   role: z.enum(["admin", "member", "caregiver", "care_recipient", "viewer", "emergency"]),
   scopes: z.array(z.enum(["health", "money", "documents", "location", "full"])),
 });
@@ -108,6 +112,7 @@ export async function inviteMemberAction(formData: FormData): Promise<ActionResu
     scopes: formData.getAll("scopes"),
   });
   if (!parsed.success) return { ok: false, message: "Check the email address and role." };
+  const emailLabel = parsed.data.email ?? "shared link";
 
   const token = await withUser(ctx.userId, async (db) => {
     const res = await db.query(
@@ -118,14 +123,14 @@ export async function inviteMemberAction(formData: FormData): Promise<ActionResu
     await db.query(
       `insert into access_log (workspace_id, actor_member_id, action, target)
        values ($1, $2, 'invited_member', $3)`,
-      [ctx.workspace.id, ctx.member.id, `${parsed.data.email} as ${parsed.data.role}`],
+      [ctx.workspace.id, ctx.member.id, `${emailLabel} as ${parsed.data.role}`],
     );
     return res.rows[0]!.token as string;
   });
 
   // Send the invite by email when configured; the link always works.
   const link = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/invite/${token}`;
-  if (process.env.RESEND_API_KEY) {
+  if (process.env.RESEND_API_KEY && parsed.data.email) {
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
