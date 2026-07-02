@@ -8,6 +8,7 @@ import {
   createContributionCheckout,
   isStripeConfigured,
 } from "@kinos/payments";
+import { PLANS, planHasFeature, type PlanId } from "@kinos/config";
 import { requireFamilyContext } from "../data/context";
 import type { ActionResult } from "./workspace";
 
@@ -25,6 +26,14 @@ export async function createPotAction(formData: FormData): Promise<ActionResult>
     currency: formData.get("currency") ?? "USD",
   });
   if (!parsed.success) return { ok: false, message: "Give the pot a name." };
+
+  const planId = (ctx.workspace.plan_id in PLANS ? ctx.workspace.plan_id : "free") as PlanId;
+  if (!planHasFeature(planId, "money_pot")) {
+    return {
+      ok: false,
+      message: `Money Pots open on Family Plus and above. The ${PLANS[planId].name} plan doesn't include them yet.`,
+    };
+  }
 
   await withUser(ctx.userId, async (db) => {
     await db.query(

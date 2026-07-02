@@ -23,6 +23,58 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid signature" }, { status: 400 });
   }
 
+  // ---- plan subscriptions: activate on settled checkout, downgrade on end ----
+  if (event.type === "checkout.session.completed") {
+    const s = event.data.object as {
+      subscription?: string | null;
+      metadata?: Record<string, string>;
+    };
+    const workspaceId = s.metadata?.kinos_workspace;
+    const planId = s.metadata?.kinos_plan;
+    if (workspaceId && planId) {
+      await withService(async (db) => {
+        const seen = await db.query(
+          `select 1 from subscription where provider = 'stripe' and external_id = $1`,
+          [s.subscription ?? ""],
+        );
+        if (seen.rows[0]) return; // replayed event — already applied
+        await db.query(
+          `update subscription set status = 'cancelled'
+           where workspace_id = $1 and provider = 'stripe' and status = 'active'`,
+          [workspaceId],
+        );
+        await db.query(
+          `insert into subscription (workspace_id, plan_id, provider, status, external_id)
+           values ($1, $2, 'stripe', 'active', $3)`,
+          [workspaceId, planId, s.subscription ?? null],
+        );
+        await db.query(`update family_workspace set plan_id = $2 where id = $1`, [
+          workspaceId,
+          planId,
+        ]);
+      });
+      return NextResponse.json({ received: true });
+    }
+  }
+  if (event.type === "customer.subscription.deleted") {
+    const sub = event.data.object as { id: string };
+    await withService(async (db) => {
+      const res = await db.query(
+        `update subscription set status = 'cancelled'
+         where provider = 'stripe' and external_id = $1 and status = 'active'
+         returning workspace_id`,
+        [sub.id],
+      );
+      const workspaceId = res.rows[0]?.workspace_id;
+      if (workspaceId) {
+        await db.query(`update family_workspace set plan_id = 'free' where id = $1`, [
+          workspaceId,
+        ]);
+      }
+    });
+    return NextResponse.json({ received: true });
+  }
+
   const status = stripeEventToStatus(event.type);
   if (!status) return NextResponse.json({ received: true });
 
