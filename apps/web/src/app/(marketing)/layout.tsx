@@ -9,7 +9,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <>
       <RevealOnScroll />
-      <nav className="sticky top-0 z-50 border-b border-line bg-paper/80 backdrop-blur-md">
+      <nav className="sticky top-0 z-50 border-b border-line/40 bg-paper/10 backdrop-blur-md">
         <div className="mx-auto flex h-[62px] max-w-[1120px] items-center justify-between px-7">
           <Link href="/" className="flex items-center gap-3 no-underline">
             <OrbitMark size={24} className="text-dusk" />

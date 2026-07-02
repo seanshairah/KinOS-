@@ -33,7 +33,7 @@ import { clockAt, ease, rgba, skyAt, skyRgba, span } from "./util";
  * two lights literally becoming one.
  */
 const BASE_TOP = [[0, "#A9B6D1"], [0.3, "#8E87B4"], [0.55, "#5F5B96"], [0.78, "#3A3766"], [0.88, "#2C2A4F"], [1, "#2C2A4F"]] as const;
-const BASE_BOT = [[0, "#D8C2A9"], [0.3, "#B18FA3"], [0.55, "#6E5F91"], [0.78, "#332F59"], [0.88, "#262449"], [1, "#262449"]] as const;
+const BASE_BOT = [[0, "#D8C2A9"], [0.3, "#B18FA3"], [0.55, "#6E5F91"], [0.78, "#332F59"], [0.88, "#2A284B"], [1, "#2C2A4F"]] as const;
 const LONDON_LIGHT = [[0, "#7FA3D8"], [0.4, "#5E6AAE"], [0.75, "#4A4886"], [1, "#4A4886"]] as const;
 const HARARE_LIGHT = [[0, "#F2B26B"], [0.4, "#DE8F63"], [0.75, "#8A5F86"], [1, "#8A5F86"]] as const;
 
