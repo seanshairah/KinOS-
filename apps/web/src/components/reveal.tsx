@@ -28,6 +28,8 @@ export function RevealOnScroll() {
     for (const el of elements) {
       const rect = el.getBoundingClientRect();
       if (rect.top < window.innerHeight * 0.9) continue; // already on screen
+      const delay = Number(el.dataset.revealDelay ?? 0);
+      if (delay > 0) el.style.transitionDelay = `${delay}ms`;
       el.classList.add("reveal-pending");
       io.observe(el);
     }
