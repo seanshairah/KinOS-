@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Eyebrow, OrbitMark } from "@kinos/ui";
 import { ConsentRings } from "@/components/consent-rings";
+import { Lamplight } from "@/components/lamplight";
+import { Magnetic } from "@/components/magnetic";
+import { ScrollThread } from "@/components/scroll-thread";
 import { DuskField } from "@/components/dusk-field";
 import { OrbitPricing } from "@/components/orbit-pricing";
 import { FAMILY_SATELLITES, OrbitSystem } from "@/components/orbit/orbit-system";
@@ -104,7 +107,7 @@ function SectionHead({
   light?: boolean;
 }) {
   return (
-    <div data-reveal className="relative mx-auto flex max-w-[1060px] flex-col gap-2 px-6 md:flex-row md:items-baseline md:gap-4">
+    <div data-reveal data-reveal-blur className="relative mx-auto flex max-w-[1060px] flex-col gap-2 px-6 md:flex-row md:items-baseline md:gap-4">
       <span className={`font-mono text-[12px] tracking-[0.1em] ${light ? "text-dusk-2" : "text-halo"}`}>{n}</span>
       <h2
         className={`flex-1 font-serif text-[clamp(25px,3.2vw,36px)] font-normal leading-[1.1] tracking-[-0.02em] ${
@@ -243,6 +246,7 @@ export default function LandingPage() {
         <div aria-hidden className="aurora aurora-a z-0" />
         <div aria-hidden className="aurora aurora-b z-0" />
         <DuskField />
+        <Lamplight />
         {/* the hero's stars and aurora settle into flat night before the
             rewind begins — no edge where the canvas ends */}
         <div
@@ -273,22 +277,26 @@ export default function LandingPage() {
               Know what matters before it becomes a crisis
             </div>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="#story"
-                className="lift rounded-pill bg-white px-6 py-3 text-[14px] font-semibold text-dusk no-underline hover:bg-dusk-ink"
-              >
-                Live one evening
-              </Link>
-              <Link
-                href="/sign-in"
-                className="lift rounded-pill border border-halo/40 px-6 py-3 text-[14px] font-medium text-dusk-ink no-underline hover:border-halo"
-              >
-                Start your family space
-              </Link>
+              <Magnetic>
+                <Link
+                  href="#story"
+                  className="lift rounded-pill bg-white px-6 py-3 text-[14px] font-semibold text-dusk no-underline hover:bg-dusk-ink"
+                >
+                  Live one evening
+                </Link>
+              </Magnetic>
+              <Magnetic>
+                <Link
+                  href="/sign-in"
+                  className="lift rounded-pill border border-halo/40 px-6 py-3 text-[14px] font-medium text-dusk-ink no-underline hover:border-halo"
+                >
+                  Start your family space
+                </Link>
+              </Magnetic>
             </div>
           </div>
           <div className="flex justify-center">
-            <OrbitSystem size={430} satellites={FAMILY_SATELLITES} className="max-w-full" />
+            <OrbitSystem size={430} satellites={FAMILY_SATELLITES} className="max-w-full" assemble />
           </div>
         </div>
 
@@ -325,7 +333,8 @@ export default function LandingPage() {
       </section>
 
       {/* ————— the night holds what the evening earned ————— */}
-      <div style={{ background: `linear-gradient(180deg, ${NIGHT} 0%, #312E58 45%, ${NIGHT} 100%)` }}>
+      <div className="relative" style={{ background: `linear-gradient(180deg, ${NIGHT} 0%, #312E58 45%, ${NIGHT} 100%)` }}>
+        <Lamplight />
         {/* ————— 5.10 evening brief ————— */}
         <section className="relative overflow-hidden py-24">
           <DuskField density={60} />
@@ -345,10 +354,17 @@ export default function LandingPage() {
                 <OrbitMark size={16} className="text-dusk" />
               </div>
               <p className="font-serif text-[clamp(18px,2.2vw,21px)] font-light leading-[1.7] text-ink">
-                Mum is okay tonight. Her medication was taken, dinner was light, and Grace
-                uploaded the pharmacy receipt. Dizziness was mentioned once and is worth
-                checking tomorrow. Transport for the 10:00 clinic visit is now confirmed.
-                Nothing else needs attention tonight.
+                {[
+                  "Mum is okay tonight.",
+                  "Her medication was taken, dinner was light, and Grace uploaded the pharmacy receipt.",
+                  "Dizziness was mentioned once and is worth checking tomorrow.",
+                  "Transport for the 10:00 clinic visit is now confirmed.",
+                  "Nothing else needs attention tonight.",
+                ].map((line, i) => (
+                  <span key={line} data-reveal data-reveal-delay={300 + i * 420}>
+                    {line}{" "}
+                  </span>
+                ))}
               </p>
               <p className="mt-6 border-t border-line pt-4 font-mono text-[11px] text-ink-faint">
                 read in thirty seconds · kept forever in the Family Record
@@ -368,7 +384,8 @@ export default function LandingPage() {
             sub="Tonight became a record the moment it happened. Years from now, it still answers."
           />
           <div className="mx-auto mt-12 grid max-w-[1060px] gap-12 px-6 md:grid-cols-[1fr_1.05fr] md:gap-16">
-            <div data-reveal className="flex flex-col">
+            <div data-reveal className="relative flex flex-col pl-6">
+              <ScrollThread className="bottom-3 left-0 top-3" />
               {RECORD_ROWS.map(([time, text], i) => (
                 <div
                   key={time}
@@ -536,7 +553,8 @@ export default function LandingPage() {
       {/* ————— dusk falls once more: the invitation ————— */}
       <SkyBridge to="night" caption="and when evening comes again" />
 
-      <div style={{ background: `linear-gradient(180deg, ${NIGHT}, #35335F)` }}>
+      <div className="relative" style={{ background: `linear-gradient(180deg, ${NIGHT}, #35335F)` }}>
+        <Lamplight />
         {/* ————— 5.14 pricing as orbit rings ————— */}
         <section className="relative py-20">
           <SectionHead
@@ -564,12 +582,14 @@ export default function LandingPage() {
               <span className="mt-1 text-white">The family knows.</span>
             </div>
             <div className="mt-10">
-              <Link
-                href="/sign-in"
-                className="lift rounded-pill bg-white px-7 py-3.5 text-[14.5px] font-semibold text-dusk no-underline"
-              >
-                Start your family space
-              </Link>
+              <Magnetic>
+                <Link
+                  href="/sign-in"
+                  className="lift rounded-pill bg-white px-7 py-3.5 text-[14.5px] font-semibold text-dusk no-underline"
+                >
+                  Start your family space
+                </Link>
+              </Magnetic>
             </div>
             <p className="mt-5 font-mono text-[12px] text-halo">Free for one Orbit · no card needed</p>
           </div>

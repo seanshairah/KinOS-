@@ -35,6 +35,19 @@ export function OrbitPricing() {
         <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full">
           <circle cx={C} cy={C} r={10} fill="#FEFCF9" />
           <circle cx={C} cy={C} r={26} fill="rgba(237,235,246,.1)" />
+          {/* one small satellite rides the chosen plan's ring */}
+          <g
+            className="spin-med pointer-events-none"
+            style={{ transformOrigin: `${C}px ${C}px`, transformBox: "view-box" }}
+          >
+            <circle
+              cx={C + INNER + STEP * active}
+              cy={C}
+              r={4}
+              fill="#EDEBF6"
+              style={{ transition: "cx .5s ease" }}
+            />
+          </g>
           {PLANS.map((plan, i) => {
             const r = INNER + STEP * i;
             const on = i === active;

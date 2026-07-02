@@ -51,6 +51,7 @@ export function OrbitSystem({
   states,
   className = "",
   interactive = true,
+  assemble = false,
 }: {
   size?: number;
   satellites?: readonly SatelliteSpec[];
@@ -60,12 +61,18 @@ export function OrbitSystem({
   states?: Record<string, Partial<Pick<SatelliteSpec, "hue" | "lines">>>;
   className?: string;
   interactive?: boolean;
+  /** on first mount, the family gathers: satellites drift in from the dark */
+  assemble?: boolean;
 }) {
   const [open, setOpen] = useState<string | null>(null);
   const [reduced, setReduced] = useState(false);
   const holderRefs = useRef(new Map<string, HTMLDivElement>());
+  const coreRef = useRef<SVGCircleElement>(null);
   const angles = useRef(new Map<string, number>());
   const pausedRef = useRef(false);
+  // The orbit notices presence: pointer position in centre-relative px.
+  const pointer = useRef({ x: 0, y: 0, active: false });
+  const bornAt = useRef(0);
 
   const shown = open ?? focus;
   pausedRef.current = shown !== null;
@@ -74,9 +81,10 @@ export function OrbitSystem({
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    bornAt.current = performance.now();
   }, []);
 
-  // Position a satellite holder for a given angle.
+  // Position a satellite holder for a given angle (static baseline).
   const place = (el: HTMLDivElement, ring: number, angle: number) => {
     const r = radii[ring]!;
     el.style.transform = `translate(-50%, -50%) translate(${Math.cos(angle) * r}px, ${Math.sin(angle) * r}px)`;
@@ -89,31 +97,72 @@ export function OrbitSystem({
       if (el) place(el, s.ring, angles.current.get(s.id)!);
     }
     if (reduced) return;
+    const easeOut = (v: number) => 1 - Math.pow(1 - v, 3);
     let raf = 0;
     let last = performance.now();
     const loop = (t: number) => {
       const dt = Math.min((t - last) / 1000, 0.1);
       last = t;
-      if (!pausedRef.current) {
-        for (const s of satellites) {
-          const a = (angles.current.get(s.id) ?? s.angle) + s.speed * dt;
+      let i = 0;
+      for (const s of satellites) {
+        const el = holderRefs.current.get(s.id);
+        if (!el) continue;
+        let a = angles.current.get(s.id) ?? s.angle;
+        if (!pausedRef.current) {
+          a += s.speed * dt;
           angles.current.set(s.id, a);
-          const el = holderRefs.current.get(s.id);
-          if (el) place(el, s.ring, a);
         }
+        // The gathering: radius eases in from far dark, staggered.
+        const at = assemble
+          ? easeOut(Math.min(Math.max((t - bornAt.current - i * 110) / 950, 0), 1))
+          : 1;
+        const r = radii[s.ring]! * (1.9 - 0.9 * at);
+        let x = Math.cos(a - (1 - at) * 0.5) * r;
+        let y = Math.sin(a - (1 - at) * 0.5) * r;
+        // The orbit leans toward presence — a few px, never a chase.
+        if (pointer.current.active && at >= 1) {
+          const dx = pointer.current.x - x;
+          const dy = pointer.current.y - y;
+          const dist = Math.hypot(dx, dy) || 1;
+          const pull = Math.max(0, 1 - dist / 240) * 11;
+          x += (dx / dist) * pull;
+          y += (dy / dist) * pull;
+        }
+        el.style.opacity = String(0.15 + 0.85 * at);
+        el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+        i++;
+      }
+      // The lamplight centre brightens as the visitor draws near.
+      // (brightness, not opacity — the breathe animation owns opacity)
+      if (coreRef.current) {
+        const near = pointer.current.active
+          ? Math.max(0, 1 - Math.hypot(pointer.current.x, pointer.current.y) / (size * 0.62))
+          : 0;
+        coreRef.current.style.filter = `brightness(${(1 + near * 0.9).toFixed(3)})`;
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [satellites, reduced, size]);
+  }, [satellites, reduced, size, assemble]);
 
   return (
     <div
       aria-hidden={!interactive}
       className={`relative ${className}`}
       style={{ width: size, height: size }}
+      onPointerMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        pointer.current = {
+          x: e.clientX - rect.left - size / 2,
+          y: e.clientY - rect.top - size / 2,
+          active: true,
+        };
+      }}
+      onPointerLeave={() => {
+        pointer.current.active = false;
+      }}
       onMouseLeave={() => setOpen(null)}
     >
       {/* rings + lamplight centre */}
@@ -136,7 +185,7 @@ export function OrbitSystem({
             strokeWidth="1"
           />
         ))}
-        <circle cx="215" cy="215" r="52" fill="url(#orbit-core)" className="breathe" />
+        <circle ref={coreRef} cx="215" cy="215" r="52" fill="url(#orbit-core)" className="breathe" />
         <circle cx="215" cy="215" r="26" fill="rgba(237,235,246,.16)" />
         <circle cx="215" cy="215" r="10.5" fill="#FEFCF9" />
       </svg>

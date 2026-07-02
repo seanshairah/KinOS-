@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * ConsentRings — privacy drawn, not written. The loved one sits at the
@@ -34,6 +34,39 @@ const C = SIZE / 2;
 
 export function ConsentRings() {
   const [revoked, setRevoked] = useState(false);
+  const memberRefs = useRef(new Map<string, HTMLDivElement>());
+  const anglesRef = useRef(new Map(MEMBERS.map((m) => [m.id, m.angle])));
+  const radiiRef = useRef(new Map(MEMBERS.map((m) => [m.id, RADII[m.ring]!])));
+  const revokedRef = useRef(false);
+  revokedRef.current = revoked;
+
+  // Privacy as a living arrangement: members drift almost imperceptibly
+  // along their rings; a revoked member glides out to a wider ring.
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0;
+    let last = performance.now();
+    const loop = (t: number) => {
+      const dt = Math.min((t - last) / 1000, 0.1);
+      last = t;
+      for (const m of MEMBERS) {
+        const el = memberRefs.current.get(m.id);
+        if (!el) continue;
+        const drift = reduced ? 0 : 0.016 * (m.ring % 2 === 0 ? 1 : -1);
+        const a = (anglesRef.current.get(m.id) ?? m.angle) + drift * dt;
+        anglesRef.current.set(m.id, a);
+        const target = RADII[m.id === "grace" && revokedRef.current ? 2 : m.ring]!;
+        let r = radiiRef.current.get(m.id) ?? target;
+        r = reduced ? target : r + (target - r) * Math.min(1, dt * 2.4);
+        radiiRef.current.set(m.id, r);
+        el.style.left = `${C + Math.cos(a) * r}px`;
+        el.style.top = `${C + Math.sin(a) * r}px`;
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   return (
     <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-center lg:gap-14">
@@ -77,15 +110,16 @@ export function ConsentRings() {
         </svg>
 
         {MEMBERS.map((m) => {
-          const ring = m.id === "grace" && revoked ? 2 : m.ring;
-          const r = RADII[ring]!;
-          const x = C + Math.cos(m.angle) * r;
-          const y = C + Math.sin(m.angle) * r;
+          const r = RADII[m.ring]!;
           return (
             <div
               key={m.id}
+              ref={(el) => {
+                if (el) memberRefs.current.set(m.id, el);
+                else memberRefs.current.delete(m.id);
+              }}
               className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-2"
-              style={{ left: x, top: y, transition: "left .9s cubic-bezier(.22,1,.36,1), top .9s cubic-bezier(.22,1,.36,1)" }}
+              style={{ left: C + Math.cos(m.angle) * r, top: C + Math.sin(m.angle) * r }}
             >
               <span
                 className="orbit-pulse h-3 w-3 flex-none rounded-full"

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DuskField } from "@/components/dusk-field";
+import { Lamplight } from "@/components/lamplight";
 import { FAMILY_SATELLITES, OrbitSystem } from "@/components/orbit/orbit-system";
 import {
   AttentionMoment,
@@ -112,6 +113,15 @@ function act(p: number, [a, b]: readonly [number, number], hold = false) {
   return Math.min(on, off);
 }
 
+/** A minute arriving — remounts on change so the digit settles in. */
+function TickingClock({ value }: { value: string }) {
+  return (
+    <span key={value} className="clock-tick">
+      {value}
+    </span>
+  );
+}
+
 function Scene({
   visible,
   children,
@@ -184,6 +194,8 @@ export function EveningStory() {
         <div aria-hidden className="absolute inset-0" style={{ opacity: nightfall }}>
           <DuskField density={90} />
         </div>
+        {/* the visitor carries a small light through the evening */}
+        <Lamplight />
 
         {/* where the evening stands — one dot per act */}
         <div className="absolute left-6 top-1/2 z-20 hidden h-[46vh] w-px -translate-y-1/2 bg-white/15 md:block lg:left-10">
@@ -214,7 +226,7 @@ export function EveningStory() {
         >
           <div className="text-left">
             <div className="font-mono text-[11.5px] uppercase tracking-[0.2em] text-white/85">
-              London · {clockAt(17 * 60 + 42, 20 * 60, p)}
+              London · <TickingClock value={clockAt(17 * 60 + 42, 20 * 60, p)} />
             </div>
             <div className="mt-1 font-mono text-[10px] tracking-[0.08em] text-white/55">
               Tari · six time zones away
@@ -222,7 +234,7 @@ export function EveningStory() {
           </div>
           <div className="text-right">
             <div className="font-mono text-[11.5px] uppercase tracking-[0.2em] text-white/85">
-              Harare · {clockAt(18 * 60 + 42, 21 * 60, p)}
+              Harare · <TickingClock value={clockAt(18 * 60 + 42, 21 * 60, p)} />
             </div>
             <div className="mt-1 font-mono text-[10px] tracking-[0.08em] text-white/55">
               Mum, Sarah &amp; Grace · home
