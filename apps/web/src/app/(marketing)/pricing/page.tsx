@@ -37,7 +37,7 @@ const ORDER = ["free", "family_core", "family_plus", "family_premium", "diaspora
 
 export default function PricingPage() {
   return (
-    <section className="py-16">
+    <section className="pb-16 pt-28">
       <div className="mx-auto max-w-[1120px] px-7">
         <Eyebrow>Pricing</Eyebrow>
         <h1 className="mt-4 max-w-[22ch] font-serif text-[clamp(30px,4.5vw,48px)] font-light leading-[1.1] tracking-[-0.02em]">

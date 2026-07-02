@@ -31,7 +31,7 @@ export default async function SignInPage({
   }
 
   return (
-    <section className="flex min-h-[70vh] items-center py-16">
+    <section className="flex min-h-[70vh] items-center pb-16 pt-28">
       <div className="mx-auto w-full max-w-[440px] px-7">
         <OrbitMark size={44} className="text-dusk" />
         <Eyebrow className="mt-6">Sign in</Eyebrow>

@@ -33,7 +33,7 @@ const CATEGORIES: { name: string; why: string; who: string }[] = [
 
 export default function PrivacyPage() {
   return (
-    <section className="py-16">
+    <section className="pb-16 pt-28">
       <div className="mx-auto max-w-[820px] px-7">
         <Eyebrow>Privacy &amp; consent</Eyebrow>
         <h1 className="mt-4 font-serif text-[clamp(30px,4.5vw,48px)] font-light leading-[1.1] tracking-[-0.02em]">
