@@ -257,6 +257,137 @@ d("row-level security", () => {
       }),
     ).rejects.toThrow();
   });
+
+  // ---------- health: the per-metric dial ----------
+
+  describe("health readings and the per-metric dial", () => {
+    let readingId: string;
+    let observationId: string;
+
+    beforeAll(async () => {
+      // Service paths (a device webhook, the reducer) write a reading and
+      // its derived observation.
+      readingId = (
+        await pool.query<{ id: string }>(
+          `insert into health_reading (subject_id, metric, value, source)
+           values ($1, 'blood_pressure', '{"systolic":152,"diastolic":94}', 'withings')
+           returning id`,
+          [subjectA],
+        )
+      ).rows[0]!.id;
+      observationId = (
+        await pool.query<{ id: string }>(
+          `insert into health_observation (subject_id, metric, kind, summary)
+           values ($1, 'blood_pressure', 'drift', 'Blood pressure was outside the usual range today.')
+           returning id`,
+          [subjectA],
+        )
+      ).rows[0]!.id;
+    });
+
+    it("without health consent, neither numbers nor observations are visible", async () => {
+      // Cara's earlier grant was revoked above; Vera never had one.
+      for (const uid of [caraId, veraId, bobId]) {
+        expect(await rows(uid, `select id from health_reading where id = $1`, [readingId])).toEqual([]);
+        expect(await rows(uid, `select id from health_observation where id = $1`, [observationId])).toEqual([]);
+      }
+    });
+
+    it("health consent at the default dial shows observations, never numbers", async () => {
+      await asUser(aliceId, (c) =>
+        c.query(
+          `insert into consent_grant (subject_id, grantee_member_id, scope)
+           values ($1, $2, 'health')`,
+          [subjectA, caraMemberId],
+        ),
+      );
+      expect(await rows(caraId, `select id from health_observation where id = $1`, [observationId])).toHaveLength(1);
+      expect(await rows(caraId, `select id from health_reading where id = $1`, [readingId])).toEqual([]);
+    });
+
+    it("dialling the metric to 'readings' reveals numbers to the consented; admins are bound by the dial too", async () => {
+      // Before the dial: even the admin sees no raw numbers.
+      expect(await rows(aliceId, `select id from health_reading where id = $1`, [readingId])).toEqual([]);
+
+      await asUser(aliceId, (c) =>
+        c.query(
+          `insert into health_share_scope (subject_id, metric, level)
+           values ($1, 'blood_pressure', 'readings')`,
+          [subjectA],
+        ),
+      );
+      expect(await rows(caraId, `select id from health_reading where id = $1`, [readingId])).toHaveLength(1);
+      expect(await rows(aliceId, `select id from health_reading where id = $1`, [readingId])).toHaveLength(1);
+    });
+
+    it("'status' hides observations from consented members; admins still see them", async () => {
+      await asUser(aliceId, (c) =>
+        c.query(
+          `update health_share_scope set level = 'status'
+           where subject_id = $1 and metric = 'blood_pressure'`,
+          [subjectA],
+        ),
+      );
+      expect(await rows(caraId, `select id from health_observation where id = $1`, [observationId])).toEqual([]);
+      expect(await rows(caraId, `select id from health_reading where id = $1`, [readingId])).toEqual([]);
+      expect(await rows(aliceId, `select id from health_observation where id = $1`, [observationId])).toHaveLength(1);
+    });
+
+    it("only an admin or the centre can touch the dial", async () => {
+      await expect(
+        asUser(caraId, (c) =>
+          c.query(
+            `insert into health_share_scope (subject_id, metric, level)
+             values ($1, 'heart_rate', 'readings')`,
+            [subjectA],
+          ),
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("a caregiver can enter a manual reading and see their own entry; nobody can rewrite one", async () => {
+      const entered = await asUser(caraId, async (c) => {
+        const r = await c.query<{ id: string }>(
+          `insert into health_reading (subject_id, member_id, metric, value, source)
+           values ($1, $2, 'heart_rate', '{"value":72}', 'manual') returning id`,
+          [subjectA, caraMemberId],
+        );
+        return r.rows[0]!.id;
+      });
+      // The author sees what they typed, even though heart_rate sits at the
+      // default dial; other members still don't.
+      expect(await rows(caraId, `select id from health_reading where id = $1`, [entered])).toHaveLength(1);
+      expect(await rows(veraId, `select id from health_reading where id = $1`, [entered])).toEqual([]);
+      await expect(
+        asUser(aliceId, (c) =>
+          c.query(`update health_reading set value = '{"systolic":120}' where id = $1`, [readingId]),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        asUser(aliceId, (c) =>
+          c.query(`delete from health_reading where id = $1`, [readingId]),
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("an outsider cannot write health readings into family A", async () => {
+      await expect(
+        asUser(bobId, (c) =>
+          c.query(
+            `insert into health_reading (subject_id, metric, value, source)
+             values ($1, 'steps', '{"value":100}', 'manual')`,
+            [subjectA],
+          ),
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("device-account links (tokens) are unreachable from the app role", async () => {
+      await expect(
+        asUser(aliceId, (c) => c.query(`select id from health_source_link`)),
+      ).rejects.toThrow();
+    });
+  });
 });
 
 if (!url) {

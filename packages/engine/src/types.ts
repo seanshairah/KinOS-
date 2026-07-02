@@ -109,6 +109,7 @@ export const ATTENTION_KINDS = [
   "no_caregiver_visit",
   "duty_overdue",
   "pattern_change",
+  "health_pattern",
   "worth_a_check",
 ] as const;
 export type AttentionKind = (typeof ATTENTION_KINDS)[number];
