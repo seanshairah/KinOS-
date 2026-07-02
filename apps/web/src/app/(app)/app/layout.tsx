@@ -24,13 +24,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const anyAttention = attentionCount > 0;
 
   const items = [
-    { href: "/app", label: "Orbit View" },
+    { href: "/app", label: "Today" },
     { href: "/app/attention", label: "Attention Needed", badge: attentionCount || undefined },
     { href: "/app/duties", label: "Duties" },
+    { href: "/app/signals", label: "Life Signals" },
     { href: "/app/money", label: "Money Pot" },
     { href: "/app/record", label: "Family Record" },
     { href: "/app/emergency", label: "Emergency" },
-    { href: "/app/settings", label: "Settings" },
+    { href: "/app/settings", label: "Admin" },
   ];
 
   return (

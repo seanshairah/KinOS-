@@ -83,9 +83,9 @@ test("a family activates: workspace → orbit → invite → check-in → duty",
   await page.getByRole("button", { name: "Assign", exact: true }).click();
   await expect(page.getByText("Buy groceries for the week")).toBeVisible();
 
-  // Orbit View shows the living record, calmly.
+  // The Today Room shows the living record, calmly.
   await page.goto("/app");
-  await expect(page.getByRole("heading", { name: "E2E Family" })).toBeVisible();
+  await expect(page.getByText("E2E Family").first()).toBeVisible();
   await expect(page.getByText("Gogo").first()).toBeVisible();
 
   // And still: no machine language anywhere in the product.

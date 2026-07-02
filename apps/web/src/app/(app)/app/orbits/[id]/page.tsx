@@ -12,24 +12,120 @@ import { notFound } from "next/navigation";
 import { formatSignalTime } from "@kinos/config";
 import {
   AttentionItem,
-  BriefBlock,
   ButtonLink,
-  EmptyState,
   Eyebrow,
-  OrbitAvatar,
   Panel,
   Pill,
   SignalRow,
   SignalValue,
-  StatusBadge,
 } from "@kinos/ui";
 
 import { VoiceCapture } from "@/components/voice-capture";
+import { OrbitSystem, type SatelliteSpec } from "@/components/orbit/orbit-system";
+import { CalmEmpty, PaperBrief, StatusWord } from "@/components/rooms";
 import { requireFamilyContext } from "@/lib/data/context";
-import { getOrbitDetail } from "@/lib/data/orbits";
+import { getOrbitDetail, type OrbitDetail } from "@/lib/data/orbits";
 
 const inputClass =
-  "rounded-card border border-line bg-paper px-3 py-2 text-[13.5px] text-ink placeholder:text-ink-faint focus:border-dusk-2";
+  "rounded-card border border-line bg-[#211f42]/60 px-3 py-2 text-[13.5px] text-ink placeholder:text-ink-faint focus:border-halo/60 focus:outline-none";
+
+/**
+ * The living Orbit at the top of the room — the loved one's real state
+ * as lights. Satellites come from data, not decoration: check-ins,
+ * medication, the next appointment, open duties, the latest brief.
+ * Ember appears only where something needs someone.
+ */
+function buildOrbitSatellites(
+  detail: OrbitDetail,
+  takenToday: Set<string>,
+): readonly SatelliteSpec[] {
+  const { subject, signals, medications, appointments, duties, attention, brief } = detail;
+  const sats: SatelliteSpec[] = [];
+  const lastCheckin = signals.find((s) => s.signal_type === "checkin");
+  if (lastCheckin) {
+    sats.push({
+      id: "checkin",
+      ring: 0,
+      angle: 0.6,
+      speed: 0.07,
+      size: 9,
+      hue: "calm",
+      lines: [
+        "Check-in",
+        formatSignalTime(new Date(lastCheckin.occurred_at).toISOString(), subject.timezone),
+      ],
+    });
+  }
+  if (medications.length > 0) {
+    const allTaken = medications.every((m) => takenToday.has(m.id));
+    sats.push({
+      id: "medication",
+      ring: 0,
+      angle: 2.4,
+      speed: 0.07,
+      size: 8,
+      hue: allTaken ? "calm" : "ink",
+      lines: ["Medication", allTaken ? "Today's doses taken" : "A dose is still open today"],
+    });
+  }
+  const appt = appointments[0];
+  if (appt) {
+    sats.push({
+      id: "appointment",
+      ring: 1,
+      angle: -0.9,
+      speed: -0.05,
+      size: 10,
+      hue: appt.transport_confirmed ? "halo" : "ember",
+      lines: [
+        appt.title,
+        new Intl.DateTimeFormat("en-GB", {
+          weekday: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: subject.timezone,
+        }).format(new Date(appt.starts_at)),
+        appt.transport_confirmed
+          ? `Transport ✓ ${appt.transport_owner_name ?? ""}`.trim()
+          : "Transport not confirmed",
+      ],
+    });
+  }
+  if (duties.length > 0) {
+    sats.push({
+      id: "duties",
+      ring: 1,
+      angle: 1.8,
+      speed: -0.05,
+      size: 9,
+      hue: "ink",
+      lines: ["Duties", `${duties.length} in someone's hands`],
+    });
+  }
+  attention.slice(0, 1).forEach((event) => {
+    sats.push({
+      id: "attention",
+      ring: 2,
+      angle: 3.4,
+      speed: 0.045,
+      size: 11,
+      hue: event.severity === "urgent" ? "ember" : "ember",
+      lines: ["Attention", event.title],
+    });
+  });
+  if (brief) {
+    sats.push({
+      id: "brief",
+      ring: 2,
+      angle: 0.2,
+      speed: 0.045,
+      size: 9,
+      hue: "halo",
+      lines: ["Daily Brief", `the ${brief.kind}, in family words`],
+    });
+  }
+  return sats;
+}
 
 function describeSignal(signal: {
   signal_type: string;
@@ -106,39 +202,84 @@ export default async function OrbitDetailPage({
     dosesToday.filter((d) => d.status === "taken").map((d) => d.medication_id),
   );
 
+  const lastCheckinSignal = signals.find((s) => s.signal_type === "checkin");
+  const nextAppt = appointments[0];
+
   return (
     <div className="flex flex-col gap-6">
-      {/* header */}
-      <div className="flex items-center gap-4">
-        <OrbitAvatar name={subject.display_name} size={56} />
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="font-serif text-[28px] tracking-[-0.01em]">{subject.display_name}</h1>
-            <StatusBadge status={status} />
+      {/* ——— the room's sky: one person, calmly organized ——— */}
+      <section className="room-enter relative overflow-hidden rounded-orbit border border-line bg-paper-2 shadow-card">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(80% 100% at 85% 0%, rgba(140,138,214,.16), transparent 60%), radial-gradient(50% 70% at 8% 100%, rgba(217,138,61,.05), transparent 60%)",
+          }}
+        />
+        <div className="relative grid items-center gap-2 p-6 md:grid-cols-[1fr_auto] md:p-8">
+          <div>
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-halo">
+              {subject.display_name}&apos;s Orbit
+            </span>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <h1 className="font-serif text-[clamp(30px,4vw,40px)] font-light leading-none tracking-[-0.01em] text-ink">
+                {subject.display_name}
+              </h1>
+              <StatusWord status={status} />
+            </div>
+            <p className="mt-3 font-mono text-[11.5px] leading-[1.8] text-ink-faint">
+              {lastCheckinSignal
+                ? `last check-in · ${formatSignalTime(new Date(lastCheckinSignal.occurred_at).toISOString(), subject.timezone)}`
+                : "no check-in yet today"}
+              {nextAppt && (
+                <>
+                  <br />
+                  next · {nextAppt.title} ·{" "}
+                  {new Intl.DateTimeFormat("en-GB", {
+                    weekday: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: subject.timezone,
+                  }).format(new Date(nextAppt.starts_at))}
+                </>
+              )}
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              <ButtonLink href={`/app/orbits/${subject.id}/check-in`} className="lift no-underline">
+                Check in
+              </ButtonLink>
+              <Link
+                href={`/app/emergency?subject=${subject.id}`}
+                className="rounded-pill border border-line-2 px-4 py-2.5 text-[13px] font-medium text-ink-soft no-underline hover:text-ink"
+              >
+                Emergency layer
+              </Link>
+            </div>
           </div>
-          <p className="mt-0.5 text-[13px] text-ink-soft">
-            {subject.kind === "elder" ? "Elder care" : subject.kind === "child" ? "School & care" : subject.kind === "recovery" ? "Recovery" : "Care"} ·{" "}
-            {subject.timezone}
-          </p>
+          <div className="mx-auto w-full max-w-[240px] md:max-w-[280px]">
+            <OrbitSystem
+              size={280}
+              satellites={buildOrbitSatellites(detail, takenToday)}
+              assemble
+            />
+            <p className="mt-1 text-center font-mono text-[9.5px] uppercase tracking-[0.18em] text-halo/60">
+              hover a light
+            </p>
+          </div>
         </div>
-        <ButtonLink href={`/app/orbits/${subject.id}/check-in`} className="no-underline">
-          Check in
-        </ButtonLink>
-      </div>
+      </section>
 
       {/* brief */}
       {brief && (
-        <Panel>
-          <BriefBlock
-            meta={`Daily Brief · ${brief.kind} · ${new Intl.DateTimeFormat("en-GB", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            }).format(new Date(brief.for_date))}`}
-          >
-            {brief.body}
-          </BriefBlock>
-        </Panel>
+        <PaperBrief
+          meta={`Daily Brief · ${brief.kind} · ${new Intl.DateTimeFormat("en-GB", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          }).format(new Date(brief.for_date))}`}
+          body={brief.body}
+        />
       )}
 
       {/* attention */}
@@ -356,11 +497,11 @@ export default async function OrbitDetailPage({
           <span className="font-mono text-[11px] text-ink-faint">last 40</span>
         </div>
         {signals.length === 0 ? (
-          <EmptyState
+          <CalmEmpty
             title="The record starts with a first signal."
             hint="A check-in, a note, a receipt — anything that helps the family know how things are."
             action={
-              <Link href={`/app/orbits/${subject.id}/check-in`} className="rounded-pill bg-dusk px-4 py-2 text-[13px] font-medium text-white no-underline">
+              <Link href={`/app/orbits/${subject.id}/check-in`} className="lift rounded-pill bg-white px-4 py-2 text-[13px] font-semibold text-dusk no-underline">
                 Do the first check-in
               </Link>
             }
