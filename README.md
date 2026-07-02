@@ -113,3 +113,26 @@ KinOS is a family coordination and life-awareness platform. It is not a
 medical device, diagnosis tool, emergency service, or replacement for
 healthcare professionals. If something seems urgent, contact local
 emergency or medical services.
+
+## Mobile (apps/mobile)
+
+The native app is an Expo (React Native) client of the same house:
+
+- **Same brain** — it talks to `/api/v1/*` JSON routes in `apps/web`; every
+  query still runs under the database's RLS role, so the phone can never see
+  more than the member's consent allows.
+- **Same look** — the Dusk tokens are imported from `@kinos/ui/dusk`.
+- **Sign-in the family way** — a six-digit code emailed to the member
+  (no passwords); the session token lives in the device keychain.
+
+Run it against production:
+
+```bash
+cd apps/mobile
+pnpm start            # scan the QR with Expo Go
+# point at a local server instead:
+EXPO_PUBLIC_API_URL=http://<your-lan-ip>:3000 pnpm start
+```
+
+Store builds happen through EAS (`npx eas build`) once Apple/Google
+accounts exist — bundle id `family.kinos.app` on both platforms.

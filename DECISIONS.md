@@ -97,3 +97,12 @@ plans and schema support them). None have UI yet, deliberately.
 **D14 — `medical_note` and `document` upload UI deferred.** The tables,
 policies and privacy levels ship now; record entries can be marked
 health-private. Document upload lands with the Blob-backed vault UI.
+
+## 15. Mobile lives in the monorepo, speaks /api/v1, signs in with a code
+
+One repository: the Expo app shares the engine, the Dusk tokens, the
+language guard, and atomic PRs with the API it depends on. Native clients
+authenticate with a six-digit emailed code (calmer than passwords, no
+deep-link fragility) and hold a bearer token in the same `auth_session`
+table the web uses — so "who is asking" has one answer everywhere, and
+RLS remains the only authority on what they may see.
