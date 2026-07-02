@@ -18,6 +18,7 @@ import {
 import { logDoseAction } from "./signals";
 import { addExpenseAction, contributeAction, createPotAction } from "./money";
 import { addRecordItemAction } from "./memory";
+import { setHealthSharingAction } from "./health";
 import {
   createOrbitAction,
   grantConsentAction,
@@ -76,4 +77,7 @@ export async function revokeConsentForm(fd: FormData): Promise<void> {
 }
 export async function raiseEmergencyForm(fd: FormData): Promise<void> {
   await raiseEmergencyAction(fd);
+}
+export async function setHealthSharingForm(fd: FormData): Promise<void> {
+  await setHealthSharingAction(fd);
 }

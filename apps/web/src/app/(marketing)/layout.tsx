@@ -45,6 +45,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </p>
           <div className="mt-4 flex flex-wrap gap-5 text-[12px] text-halo">
             <Link href="/privacy" className="no-underline hover:text-white">Privacy &amp; consent</Link>
+            <Link href="/legal/privacy-policy" className="no-underline hover:text-white">Privacy Policy</Link>
+            <Link href="/legal/terms" className="no-underline hover:text-white">Terms</Link>
             <Link href="/pricing" className="no-underline hover:text-white">Pricing</Link>
             <span>© {new Date().getFullYear()} KinOS</span>
           </div>
