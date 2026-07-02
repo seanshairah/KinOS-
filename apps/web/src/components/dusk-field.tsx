@@ -71,6 +71,9 @@ export function DuskField({ density = 110 }: { density?: number }) {
     let pointerX = 0.5;
     let pointerY = 0.4;
     let visible = true;
+    // A rare meteor — catching one should feel like luck.
+    let meteor: { x: number; y: number; vx: number; vy: number; life: number } | null = null;
+    let nextMeteorAt = 12 + Math.random() * 16;
 
     const resize = () => {
       const parent = canvas.parentElement;
@@ -123,6 +126,48 @@ export function DuskField({ density = 110 }: { density?: number }) {
             ctx.beginPath();
             ctx.moveTo(a.px, a.py);
             ctx.lineTo(b.px, b.py);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // the meteor, when the sky grants one
+      if (!reduced) {
+        if (!meteor && time > nextMeteorAt) {
+          const fromLeft = Math.random() > 0.5;
+          meteor = {
+            x: fromLeft ? -30 : width * (0.55 + Math.random() * 0.4),
+            y: height * (0.05 + Math.random() * 0.25),
+            vx: (fromLeft ? 1 : 0.8) * (420 + Math.random() * 160),
+            vy: 150 + Math.random() * 90,
+            life: 1,
+          };
+          nextMeteorAt = time + 20 + Math.random() * 18;
+        }
+        if (meteor) {
+          const dt = 1 / 60;
+          meteor.x += meteor.vx * dt;
+          meteor.y += meteor.vy * dt;
+          meteor.life -= dt / 1.3;
+          if (meteor.life <= 0 || meteor.x > width + 60 || meteor.y > height + 60) {
+            meteor = null;
+          } else {
+            const tail = 90 * meteor.life;
+            const nx = meteor.vx / Math.hypot(meteor.vx, meteor.vy);
+            const ny = meteor.vy / Math.hypot(meteor.vx, meteor.vy);
+            const grad = ctx.createLinearGradient(
+              meteor.x - nx * tail,
+              meteor.y - ny * tail,
+              meteor.x,
+              meteor.y,
+            );
+            grad.addColorStop(0, "rgba(237,235,246,0)");
+            grad.addColorStop(1, `rgba(237,235,246,${(0.55 * meteor.life).toFixed(3)})`);
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(meteor.x - nx * tail, meteor.y - ny * tail);
+            ctx.lineTo(meteor.x, meteor.y);
             ctx.stroke();
           }
         }

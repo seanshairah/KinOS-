@@ -30,6 +30,7 @@ export function RevealOnScroll() {
       if (rect.top < window.innerHeight * 0.9) continue; // already on screen
       const delay = Number(el.dataset.revealDelay ?? 0);
       if (delay > 0) el.style.transitionDelay = `${delay}ms`;
+      if ("revealBlur" in el.dataset) el.classList.add("reveal-blur");
       el.classList.add("reveal-pending");
       io.observe(el);
     }

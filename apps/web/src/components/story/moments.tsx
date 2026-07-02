@@ -162,16 +162,21 @@ export function VoiceNoteTransform({ t }: { t: number }) {
             G
           </span>
           <div className="flex h-7 flex-1 items-center gap-[3px] overflow-hidden" aria-hidden>
-            {Array.from({ length: 30 }, (_, i) => (
-              <span
-                key={i}
-                className="w-[3px] flex-none rounded-pill bg-dusk-3"
-                style={{
-                  height: `${6 + ((i * 37) % 17)}px`,
-                  opacity: span(t, 0, 0.5) * 30 > i ? 0.9 : 0.3,
-                }}
-              />
-            ))}
+            {Array.from({ length: 30 }, (_, i) => {
+              const heard = span(t, 0, 0.5) * 30 > i;
+              const playing = t > 0.03 && t < 0.55;
+              return (
+                <span
+                  key={i}
+                  className={`w-[3px] flex-none rounded-pill bg-dusk-3 ${playing && heard ? "wave-playing" : ""}`}
+                  style={{
+                    height: `${6 + ((i * 37) % 17)}px`,
+                    opacity: heard ? 0.9 : 0.3,
+                    animationDelay: `${(i % 7) * 0.09}s`,
+                  }}
+                />
+              );
+            })}
           </div>
           <span className="font-mono text-[10.5px] text-ink-faint">0:21</span>
         </div>
