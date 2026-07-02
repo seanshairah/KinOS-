@@ -6,7 +6,7 @@ import { requireUserId, getFamilyContext } from "@/lib/data/context";
 import { listOrbits, type OrbitSummary } from "@/lib/data/orbits";
 import { listOpenAttention } from "@/lib/data/attention";
 import { listDuties } from "@/lib/data/duties";
-import { listRecentSignals, describeSignal } from "@/lib/data/signals";
+import { listRecentSignals, listPatterns, describeSignal } from "@/lib/data/signals";
 import { MiniOrbit, type OrbitStatus } from "@/components/mini-orbit";
 import {
   CalmEmpty,
@@ -113,10 +113,11 @@ export default async function TodayRoomPage() {
     );
   }
 
-  const [attention, openDuties, signals, latestBrief] = await Promise.all([
+  const [attention, openDuties, signals, patterns, latestBrief] = await Promise.all([
     listOpenAttention(userId),
     listDuties(userId, "open"),
     listRecentSignals(userId, 8),
+    listPatterns(userId, 3),
     withUser(userId, async (db) => {
       const res = await db.query(
         `select b.*, s.display_name as subject_name from daily_brief b
@@ -320,6 +321,22 @@ export default async function TodayRoomPage() {
               </div>
             )}
           </RoomSection>
+
+          {/* ——— patterns: noticed gently, over weeks ——— */}
+          {patterns.length > 0 && (
+            <RoomSection title="Patterns · gentle, over weeks" delay={190}>
+              <div className="flex flex-col gap-3">
+                {patterns.map((p) => (
+                  <p key={p.id} className="border-t border-line pt-3 font-serif text-[15.5px] font-light leading-relaxed text-ink first:border-t-0 first:pt-0">
+                    {p.summary}
+                    <span className="mt-0.5 block font-mono text-[10px] text-ink-faint">
+                      {p.subject_name} · against their own rhythm, never a rulebook
+                    </span>
+                  </p>
+                ))}
+              </div>
+            </RoomSection>
+          )}
 
           {/* ——— latest life signals, quiet mono rows ——— */}
           <RoomSection

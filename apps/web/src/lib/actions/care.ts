@@ -63,6 +63,26 @@ export async function completeDutyAction(formData: FormData): Promise<ActionResu
   const ctx = await requireFamilyContext();
   const dutyId = z.string().uuid().parse(formData.get("dutyId"));
 
+  // Proof is optional but powerful: a photo or receipt attached at the
+  // moment of completion. Especially across borders, proof is the trust.
+  const proof = formData.get("proof");
+  let proofUrl: string | null = null;
+  let proofName: string | null = null;
+  if (proof instanceof File && proof.size > 0 && proof.size <= 8 * 1024 * 1024) {
+    try {
+      const { put } = await import("@vercel/blob");
+      const blob = await put(
+        `${ctx.workspace.id}/duties/${dutyId}/${Date.now()}-${proof.name}`,
+        proof,
+        { access: "public", addRandomSuffix: true },
+      );
+      proofUrl = blob.url;
+      proofName = proof.name;
+    } catch {
+      // storage unavailable — settle the duty anyway, without the photo
+    }
+  }
+
   await withUser(ctx.userId, async (db) => {
     const res = await db.query(
       `update duty set status = 'done', completed_at = now() where id = $1
@@ -71,6 +91,42 @@ export async function completeDutyAction(formData: FormData): Promise<ActionResu
     );
     const duty = res.rows[0];
     if (duty) {
+      // A settled duty becomes a Life Signal — the family sees it land.
+      await db.query(
+        `insert into life_signal (subject_id, member_id, signal_type, source, value, privacy_level)
+         values ($1, $2, 'duty_update', 'duty_update', $3, 'family')`,
+        [
+          duty.subject_id,
+          ctx.member.id,
+          JSON.stringify({ title: duty.title, status: "done", ...(proofUrl ? { proof: proofUrl } : {}) }),
+        ],
+      );
+
+      // With proof it also enters the Family Record, evidence attached.
+      if (proofUrl) {
+        const record = await db.query(
+          `insert into family_record_item (subject_id, kind, title, body, privacy_level, author_member_id)
+           values ($1, 'note', $2, $3, 'family', $4) returning id`,
+          [
+            duty.subject_id,
+            `Duty settled — ${duty.title}`,
+            `Handled by ${ctx.member.display_name ?? "the family"}, proof attached.`,
+            ctx.member.id,
+          ],
+        );
+        await db.query(
+          `insert into document (subject_id, record_item_id, storage_path, mime, title, privacy_level)
+           values ($1, $2, $3, $4, $5, 'family')`,
+          [
+            duty.subject_id,
+            record.rows[0]!.id,
+            proofUrl,
+            proof instanceof File ? proof.type : null,
+            `Proof — ${duty.title}${proofName ? ` (${proofName})` : ""}`,
+          ],
+        );
+      }
+
       await db.query(
         `update attention_event set status = 'resolved', resolved_at = now()
          where dedupe_key = $1 and status in ('open','ack')`,

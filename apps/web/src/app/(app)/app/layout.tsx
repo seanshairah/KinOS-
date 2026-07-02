@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 // session cookie and live signals, never on build-time state.
 export const dynamic = "force-dynamic";
 import { OrbitMark, Wordmark } from "@kinos/ui";
-import { isDatabaseConfigured } from "@kinos/db";
+import { getPool, isDatabaseConfigured } from "@kinos/db";
 import { AppNav } from "@/components/app-nav";
 import { DuskField } from "@/components/dusk-field";
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -22,6 +22,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await getFamilyContext(userId);
   const attentionCount = ctx ? await countOpenAttention(userId) : 0;
   const anyAttention = attentionCount > 0;
+
+  // A wandering visitor sees everything and can touch nothing —
+  // the database enforces it; this banner just says so, warmly.
+  const visitor = await getPool().query(
+    `select 1 from app_user where id = $1 and email = 'visitor@kinos.family'`,
+    [userId],
+  );
+  const isVisitor = Boolean(visitor.rows[0]);
 
   const items = [
     { href: "/app", label: "Today" },
@@ -77,6 +85,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </header>
+
+      {isVisitor && (
+        <div className="relative z-30 border-b border-halo/20 bg-halo/[.08]">
+          <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-x-6 gap-y-1.5 px-5 py-2.5">
+            <p className="text-[12.5px] text-ink-soft">
+              <span className="mr-2 inline-block h-[6px] w-[6px] rounded-full bg-halo align-middle shadow-[0_0_8px_rgba(169,167,224,.8)]" />
+              You&apos;re wandering a living demo family. Look anywhere — nothing here can be
+              changed.
+            </p>
+            <Link
+              href="/sign-in"
+              className="rounded-pill bg-white px-3.5 py-1.5 text-[12px] font-semibold text-dusk no-underline"
+            >
+              Start your own family space →
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-5 py-6 md:flex-row">
         <aside className="md:w-[210px] md:flex-none">

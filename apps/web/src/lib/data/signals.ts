@@ -32,6 +32,26 @@ export async function listRecentSignals(
   });
 }
 
+/** Gentle trends against each person's own baseline — never alarms. */
+export interface PatternSummary {
+  id: string;
+  subject_name: string;
+  summary: string;
+  at: string;
+}
+
+export async function listPatterns(userId: string, limit = 4): Promise<PatternSummary[]> {
+  return withUser(userId, async (db) => {
+    const res = await db.query(
+      `select p.id, p.summary, p.at, s.display_name as subject_name
+       from pattern p join care_subject s on s.id = p.subject_id
+       order by p.at desc limit $1`,
+      [limit],
+    );
+    return res.rows as PatternSummary[];
+  });
+}
+
 /** Speak the signal in family words, never in log words. */
 export function describeSignal(s: SignalSummary): { text: string; tone: "ember" | "calm" | "halo" } {
   const v = s.value ?? {};
