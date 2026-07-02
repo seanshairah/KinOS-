@@ -32,6 +32,12 @@ const MEMBERS: Member[] = [
 const SIZE = 470;
 const C = SIZE / 2;
 
+/** percentage-based position, so members scale with the box on any screen */
+const pos = (a: number, r: number) => ({
+  left: `${(((C + Math.cos(a) * r) / SIZE) * 100).toFixed(3)}%`,
+  top: `${(((C + Math.sin(a) * r) / SIZE) * 100).toFixed(3)}%`,
+});
+
 export function ConsentRings() {
   const [revoked, setRevoked] = useState(false);
   const memberRefs = useRef(new Map<string, HTMLDivElement>());
@@ -59,8 +65,9 @@ export function ConsentRings() {
         let r = radiiRef.current.get(m.id) ?? target;
         r = reduced ? target : r + (target - r) * Math.min(1, dt * 2.4);
         radiiRef.current.set(m.id, r);
-        el.style.left = `${C + Math.cos(a) * r}px`;
-        el.style.top = `${C + Math.sin(a) * r}px`;
+        const p = pos(a, r);
+        el.style.left = p.left;
+        el.style.top = p.top;
       }
       raf = requestAnimationFrame(loop);
     };
@@ -70,7 +77,7 @@ export function ConsentRings() {
 
   return (
     <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-center lg:gap-14">
-      <div className="relative max-w-full" style={{ width: SIZE, height: SIZE }}>
+      <div className="relative" style={{ width: "100%", maxWidth: SIZE, aspectRatio: "1 / 1" }}>
         <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="h-full w-full">
           {RADII.map((r, i) => (
             <g key={r}>
@@ -89,7 +96,7 @@ export function ConsentRings() {
                 y={C - r - 6}
                 textAnchor="middle"
                 className="fill-halo font-mono"
-                style={{ fontSize: 10, letterSpacing: "0.14em", opacity: 0.85 }}
+                style={{ fontSize: 11.5, letterSpacing: "0.14em", opacity: 0.85 }}
               >
                 {RINGS[i]!.toUpperCase()}
               </text>
@@ -103,7 +110,7 @@ export function ConsentRings() {
             y={C + 48}
             textAnchor="middle"
             className="fill-[#EDEBF6] font-mono"
-            style={{ fontSize: 10.5, letterSpacing: "0.12em" }}
+            style={{ fontSize: 12, letterSpacing: "0.12em" }}
           >
             MUM
           </text>
@@ -119,7 +126,7 @@ export function ConsentRings() {
                 else memberRefs.current.delete(m.id);
               }}
               className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-2"
-              style={{ left: C + Math.cos(m.angle) * r, top: C + Math.sin(m.angle) * r }}
+              style={pos(m.angle, r)}
             >
               <span
                 className="orbit-pulse h-3 w-3 flex-none rounded-full"

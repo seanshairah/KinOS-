@@ -288,7 +288,7 @@ export function EveningStory() {
                 <em className="italic text-white">One shared family state.</em>
               </p>
               <div
-                className="mt-6 flex origin-top justify-center max-[500px]:scale-[.78]"
+                className="mt-6 flex justify-center"
                 style={{ transform: `scale(${0.92 + mergeT * 0.08})` }}
               >
                 <OrbitSystem size={410} satellites={FAMILY_SATELLITES} />

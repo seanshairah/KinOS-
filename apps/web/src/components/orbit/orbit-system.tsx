@@ -66,6 +66,10 @@ export function OrbitSystem({
 }) {
   const [open, setOpen] = useState<string | null>(null);
   const [reduced, setReduced] = useState(false);
+  // The orbit takes the space it's given: on narrow screens the box
+  // shrinks and every radius shrinks with it — no fixed-width overflow.
+  const [box, setBox] = useState(size);
+  const rootRef = useRef<HTMLDivElement>(null);
   const holderRefs = useRef(new Map<string, HTMLDivElement>());
   const coreRef = useRef<SVGCircleElement>(null);
   const angles = useRef(new Map<string, number>());
@@ -77,11 +81,23 @@ export function OrbitSystem({
   const shown = open ?? focus;
   pausedRef.current = shown !== null;
 
-  const radii = useMemo(() => [size * 0.19, size * 0.31, size * 0.435], [size]);
+  const radii = useMemo(() => [box * 0.19, box * 0.31, box * 0.435], [box]);
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     bornAt.current = performance.now();
+  }, []);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && Math.abs(w - box) > 1) setBox(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Position a satellite holder for a given angle (static baseline).
@@ -136,7 +152,7 @@ export function OrbitSystem({
       // (brightness, not opacity — the breathe animation owns opacity)
       if (coreRef.current) {
         const near = pointer.current.active
-          ? Math.max(0, 1 - Math.hypot(pointer.current.x, pointer.current.y) / (size * 0.62))
+          ? Math.max(0, 1 - Math.hypot(pointer.current.x, pointer.current.y) / (box * 0.62))
           : 0;
         coreRef.current.style.filter = `brightness(${(1 + near * 0.9).toFixed(3)})`;
       }
@@ -145,18 +161,19 @@ export function OrbitSystem({
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [satellites, reduced, size, assemble]);
+  }, [satellites, reduced, box, assemble]);
 
   return (
     <div
+      ref={rootRef}
       aria-hidden={!interactive}
       className={`relative ${className}`}
-      style={{ width: size, height: size }}
+      style={{ width: "100%", maxWidth: size, aspectRatio: "1 / 1" }}
       onPointerMove={(e) => {
         const rect = e.currentTarget.getBoundingClientRect();
         pointer.current = {
-          x: e.clientX - rect.left - size / 2,
-          y: e.clientY - rect.top - size / 2,
+          x: e.clientX - rect.left - rect.width / 2,
+          y: e.clientY - rect.top - rect.width / 2,
           active: true,
         };
       }}
@@ -166,7 +183,7 @@ export function OrbitSystem({
       onMouseLeave={() => setOpen(null)}
     >
       {/* rings + lamplight centre */}
-      <svg width={size} height={size} viewBox="0 0 430 430" className="absolute inset-0 h-full w-full">
+      <svg viewBox="0 0 430 430" className="absolute inset-0 h-full w-full">
         <defs>
           <radialGradient id="orbit-core">
             <stop offset="0%" stopColor="#EDEBF6" stopOpacity=".9" />
