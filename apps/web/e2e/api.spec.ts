@@ -32,6 +32,43 @@ async function bearerFor(email: string): Promise<string> {
   return token;
 }
 
+/**
+ * A self-sufficient family: the suite must not depend on the demo seed
+ * (CI runs against a migrations-only database). Rows are created with
+ * owner privileges — the API calls under test still go through RLS.
+ */
+async function bearerForFamilyAdmin(email: string): Promise<string> {
+  const pool = new pg.Pool({ connectionString: dbUrl });
+  const user = await pool.query(
+    `insert into app_user (name, email, email_verified) values ($1, $2, now())
+     on conflict (email) do update set email_verified = now()
+     returning id`,
+    ["API Admin", email],
+  );
+  const userId = user.rows[0]!.id;
+  const ws = await pool.query(
+    `insert into family_workspace (name, created_by) values ('API Family', $1) returning id`,
+    [userId],
+  );
+  await pool.query(
+    `insert into family_member (workspace_id, user_id, display_name, role)
+     values ($1, $2, 'API Admin', 'admin')`,
+    [ws.rows[0]!.id, userId],
+  );
+  await pool.query(
+    `insert into care_subject (workspace_id, display_name, kind) values ($1, 'Gogo', 'elder')`,
+    [ws.rows[0]!.id],
+  );
+  const token = randomUUID();
+  await pool.query(
+    `insert into auth_session (session_token, user_id, expires)
+     values ($1, $2, now() + interval '1 day')`,
+    [token, userId],
+  );
+  await pool.end();
+  return token;
+}
+
 test("code sign-in issues a working session", async ({ request }) => {
   const email = `mobile+${Date.now()}@demo.kinos.family`;
   const asked = await request.post(`${BASE}/api/v1/auth/request-code`, { data: { email } });
@@ -48,8 +85,7 @@ test("code sign-in issues a working session", async ({ request }) => {
 test("the mobile surface: me → orbits → check-in → brief → attention → push", async ({
   request,
 }) => {
-  // Grace is seeded with full caregiver membership in the Moyo family.
-  const token = await bearerFor("grace@demo.kinos.family");
+  const token = await bearerForFamilyAdmin(`api-admin+${Date.now()}@demo.kinos.family`);
   const auth = { Authorization: `Bearer ${token}` };
 
   const me = await request.get(`${BASE}/api/v1/me`, { headers: auth });
