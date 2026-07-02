@@ -16,5 +16,7 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
+  /* clip, not hidden: decorative absolutes (tooltips, auroras) can lean past
+     the edge without creating a scroll region, and sticky keeps working */
+  overflow-x: clip;
 }
