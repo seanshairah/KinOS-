@@ -258,6 +258,12 @@ export default function LandingPage() {
                 </Link>
               </Magnetic>
             </div>
+            <a
+              href="/api/demo/visit"
+              className="mt-4 inline-block font-mono text-[12px] text-halo underline decoration-halo/40 underline-offset-4 hover:text-white"
+            >
+              or wander a living family space first →
+            </a>
           </div>
           <div className="flex justify-center">
             <OrbitSystem size={430} satellites={FAMILY_SATELLITES} className="max-w-full" assemble />
@@ -535,7 +541,15 @@ export default function LandingPage() {
                 </Link>
               </Magnetic>
             </div>
-            <p className="mt-5 font-mono text-[12px] text-halo">Free for one Orbit · no card needed</p>
+            <p className="mt-5 font-mono text-[12px] text-halo">
+              Free for one Orbit · no card needed ·{" "}
+              <a
+                href="/api/demo/visit"
+                className="text-halo underline decoration-halo/40 underline-offset-4 hover:text-white"
+              >
+                wander the demo family →
+              </a>
+            </p>
           </div>
         </section>
       </div>

@@ -125,11 +125,16 @@ export default async function DutiesRoomPage() {
                   </div>
                 </div>
               </div>
-              <form action={completeDutyForm} className="flex-none">
+              <form action={completeDutyForm} className="flex flex-none flex-col items-end gap-1.5">
                 <input type="hidden" name="dutyId" value={duty.id} />
                 <button className="lift rounded-pill border border-calm-soft bg-calm-soft/60 px-4 py-2 text-[12.5px] font-medium text-calm-text">
                   Done
                 </button>
+                {/* proof is the trust: attach a photo or receipt as you settle it */}
+                <label className="cursor-pointer font-mono text-[10px] text-ink-faint hover:text-halo">
+                  + proof
+                  <input type="file" name="proof" accept="image/*" capture="environment" className="sr-only" />
+                </label>
               </form>
             </div>
           ))}
