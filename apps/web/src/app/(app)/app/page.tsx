@@ -65,7 +65,12 @@ function orbitLine(orbit: OrbitSummary): string {
   return parts.join(" · ");
 }
 
-export default async function TodayRoomPage() {
+export default async function TodayRoomPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ withings?: string }>;
+}) {
+  const withingsStatus = (await searchParams)?.withings;
   const userId = await requireUserId();
   const ctx = await getFamilyContext(userId);
   if (!ctx) redirect("/app/onboarding");
@@ -171,6 +176,22 @@ export default async function TodayRoomPage() {
         }
         sub={subline}
       />
+
+      {withingsStatus && (
+        <div
+          className={`room-enter rounded-card border px-4 py-3 text-[13px] ${
+            withingsStatus === "connected"
+              ? "border-calm-text/25 bg-calm-soft text-calm-text"
+              : "border-line bg-paper-2 text-ink-soft"
+          }`}
+        >
+          {withingsStatus === "connected"
+            ? "Device linked. Readings will arrive on their own — the family only hears when something is worth a check."
+            : withingsStatus === "declined"
+              ? "The device link was cancelled. Nothing was connected."
+              : "The device link didn't finish. Try again from the orbit page."}
+        </div>
+      )}
 
       {orbits.length === 0 && (
         <CalmEmpty

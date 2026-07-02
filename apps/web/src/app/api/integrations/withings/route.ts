@@ -11,10 +11,9 @@ export const dynamic = "force-dynamic";
  * POST naming the user and the data window — never the data itself; that
  * is fetched separately with the linked account's tokens).
  *
- * Until WITHINGS_CLIENT_ID / WITHINGS_CLIENT_SECRET are configured and the
- * fetch stage lands, notifications for linked accounts are parked in
- * pipeline_dead_letter (stage: withings_fetch) so nothing is silently
- * dropped; unknown accounts are acknowledged and ignored.
+ * Notifications for linked accounts are parked in pipeline_dead_letter
+ * (stage: withings_fetch); the health-sync sweep fetches the measurements
+ * within 15 minutes. Unknown accounts are acknowledged and ignored.
  */
 
 export function HEAD() {
@@ -48,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (!link.rows[0]) return;
     await db.query(
       `insert into pipeline_dead_letter (stage, error, payload)
-       values ('withings_fetch', 'measurement fetch not yet implemented', $1)`,
+       values ('withings_fetch', 'awaiting health-sync sweep', $1)`,
       [JSON.stringify({ ...payload, link_id: link.rows[0].id, subject_id: link.rows[0].subject_id })],
     );
   }).catch(() => {});

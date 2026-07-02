@@ -115,6 +115,68 @@ export async function ingestHealthReadings(
 }
 
 /**
+ * Whether a device cloud is linked to this orbit. Service-side on purpose:
+ * link rows carry tokens and have no app-role grants, so pages get a
+ * boolean, never the row.
+ */
+export async function hasDeviceLink(subjectId: string): Promise<boolean> {
+  return withService(async (db) => {
+    const res = await db.query(
+      `select 1 from health_source_link where subject_id = $1 and status = 'active' limit 1`,
+      [subjectId],
+    );
+    return Boolean(res.rows[0]);
+  });
+}
+
+/**
+ * Service-context capture for device clouds (webhook-driven sources like
+ * Withings): no user in the loop, so inserts run as the service after the
+ * link itself established consent. Same dedupe, same reduction.
+ */
+export async function ingestServiceReadings(
+  subjectId: string,
+  source: "withings",
+  readings: IncomingReading[],
+): Promise<HealthIngestResult> {
+  const ids = await withService(async (db) => {
+    const out: { id: string; reading: IncomingReading }[] = [];
+    for (const r of readings) {
+      const res = await db.query(
+        `insert into health_reading
+           (subject_id, metric, value, unit, source, device, external_id, taken_at)
+         values ($1, $2, $3, $4, $5, $6, $7, coalesce($8::timestamptz, now()))
+         on conflict (source, external_id) where external_id is not null do nothing
+         returning id`,
+        [
+          subjectId,
+          r.metric,
+          JSON.stringify(r.value),
+          r.unit ?? null,
+          source,
+          r.device ? JSON.stringify(r.device) : null,
+          r.externalId ?? null,
+          r.takenAt ?? null,
+        ],
+      );
+      if (res.rows[0]) out.push({ id: res.rows[0].id as string, reading: r });
+    }
+    return out;
+  });
+
+  let observations = 0;
+  let attentionRaised = false;
+  for (const { id, reading } of ids) {
+    const outcome = await reduceStoredReading(subjectId, id, reading).catch(
+      () => ({ observation: false, attention: false }),
+    );
+    if (outcome.observation) observations += 1;
+    if (outcome.attention) attentionRaised = true;
+  }
+  return { ok: true, stored: ids.length, observations, attentionRaised };
+}
+
+/**
  * Service-side reduction of one stored reading: history + baseline in,
  * observation / attention out. Idempotent — attention dedupe keys make
  * re-runs no-ops, and the baseline update happens exactly once per call.
