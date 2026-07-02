@@ -1,14 +1,25 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/lib/session";
+import { NightSky } from "@/components/night-sky";
 import { MOODS, T, type MoodKey } from "@/lib/theme";
 
 /**
- * The one-tap check-in — big type, four honest answers, done.
- * Supported like family, never watched like a patient.
+ * The check-in — touching a light. Four moods as glowing orbs; choosing
+ * one is a small act of light, and telling the family releases a ring
+ * of it. The reward is the truth: "The family knows."
  */
 export default function CheckIn() {
   const { token } = useSession();
@@ -19,6 +30,14 @@ export default function CheckIn() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const ringScale = useRef(new Animated.Value(0)).current;
+  const ringOpacity = useRef(new Animated.Value(0)).current;
+
+  const choose = async (key: MoodKey) => {
+    setMood(key);
+    await Haptics.selectionAsync();
+  };
+
   const submit = async () => {
     if (!token || !params.subjectId || !mood) return;
     setBusy(true);
@@ -28,123 +47,210 @@ export default function CheckIn() {
         mood,
         ...(note.trim() ? { note: note.trim() } : {}),
       });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setDone(true);
-      setTimeout(() => router.back(), 1600);
+      // a ring of light joins the orbit
+      ringOpacity.setValue(0.85);
+      Animated.parallel([
+        Animated.timing(ringScale, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(ringOpacity, {
+          toValue: 0,
+          duration: 1400,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]).start();
+      setTimeout(() => router.back(), 2100);
     } catch (e) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setError(e instanceof ApiError ? e.message : "Couldn't reach KinOS — try again.");
       setBusy(false);
     }
   };
 
   if (done) {
+    const scale = ringScale.interpolate({ inputRange: [0, 1], outputRange: [0.3, 3.4] });
     return (
-      <SafeAreaView style={[s.safe, s.doneWrap]}>
-        <View style={s.calmDot} />
-        <Text style={s.doneTitle}>The family knows.</Text>
-        <Text style={s.doneSub}>Nothing else is needed from you.</Text>
-      </SafeAreaView>
+      <View style={{ flex: 1 }}>
+        <NightSky />
+        <SafeAreaView style={[s.safe, s.doneWrap]}>
+          <View style={s.doneStage}>
+            <Animated.View
+              style={[s.doneRing, { opacity: ringOpacity, transform: [{ scale }] }]}
+            />
+            <View style={s.doneDot} />
+          </View>
+          <Text style={s.doneTitle}>The family knows.</Text>
+          <Text style={s.doneSub}>Nothing else is needed from you.</Text>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={s.safe}>
-      <View style={s.body}>
-        <Text style={s.kicker}>CHECK IN</Text>
-        <Text style={s.title}>How is {params.name ?? "your person"} today?</Text>
+    <View style={{ flex: 1 }}>
+      <NightSky />
+      <SafeAreaView style={s.safe}>
+        <View style={s.body}>
+          <Text style={s.kicker}>CHECK IN</Text>
+          <Text style={s.title}>How is {params.name ?? "your person"} today?</Text>
 
-        <View style={{ gap: 10, marginTop: 22 }}>
-          {MOODS.map((m) => {
-            const on = mood === m.key;
-            return (
-              <Pressable
-                key={m.key}
-                style={[s.mood, on && s.moodOn]}
-                onPress={() => setMood(m.key)}
-              >
-                <Text style={[s.moodLabel, on && s.moodLabelOn]}>{m.label}</Text>
-                <Text style={[s.moodHint, on && s.moodHintOn]}>{m.hint}</Text>
-              </Pressable>
-            );
-          })}
+          <View style={{ gap: 11, marginTop: 24 }}>
+            {MOODS.map((m) => {
+              const on = mood === m.key;
+              return (
+                <Pressable
+                  key={m.key}
+                  style={[
+                    s.mood,
+                    on && {
+                      borderColor: m.color,
+                      backgroundColor: "rgba(254,252,249,0.1)",
+                      shadowColor: m.color,
+                      shadowOpacity: 0.55,
+                      shadowRadius: 16,
+                      shadowOffset: { width: 0, height: 0 },
+                      elevation: 8,
+                    },
+                  ]}
+                  onPress={() => void choose(m.key)}
+                >
+                  <View
+                    style={[
+                      s.moodLight,
+                      {
+                        backgroundColor: m.color,
+                        opacity: on ? 1 : 0.45,
+                        shadowColor: m.color,
+                        shadowOpacity: on ? 0.95 : 0,
+                        shadowRadius: 9,
+                        shadowOffset: { width: 0, height: 0 },
+                        elevation: on ? 6 : 0,
+                      },
+                    ]}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.moodLabel, on && { color: "#fff" }]}>{m.label}</Text>
+                    <Text style={s.moodHint}>{m.hint}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <TextInput
+            style={s.note}
+            value={note}
+            onChangeText={setNote}
+            placeholder="Anything worth mentioning? (optional)"
+            placeholderTextColor="rgba(169,167,224,.55)"
+            multiline
+          />
+
+          {error && <Text style={s.error}>{error}</Text>}
+
+          <Pressable
+            style={({ pressed }) => [s.submit, (!mood || busy || pressed) && { opacity: 0.6 }]}
+            disabled={!mood || busy}
+            onPress={submit}
+          >
+            <Text style={s.submitText}>{busy ? "One moment…" : "Tell the family"}</Text>
+          </Pressable>
+          <Pressable onPress={() => router.back()}>
+            <Text style={s.cancel}>Not now</Text>
+          </Pressable>
         </View>
-
-        <TextInput
-          style={s.note}
-          value={note}
-          onChangeText={setNote}
-          placeholder="Anything worth mentioning? (optional)"
-          placeholderTextColor={T.inkFaint}
-          multiline
-        />
-
-        {error && <Text style={s.error}>{error}</Text>}
-
-        <Pressable
-          style={[s.submit, (!mood || busy) && { opacity: 0.5 }]}
-          disabled={!mood || busy}
-          onPress={submit}
-        >
-          <Text style={s.submitText}>{busy ? "One moment…" : "Tell the family"}</Text>
-        </Pressable>
-        <Pressable onPress={() => router.back()}>
-          <Text style={s.cancel}>Not now</Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: T.paper },
-  body: { flex: 1, padding: 24 },
-  kicker: { fontFamily: T.mono, fontSize: 11, letterSpacing: 2.5, color: T.dusk2 },
-  title: { fontFamily: T.serif, fontSize: 30, lineHeight: 37, color: T.ink, marginTop: 10 },
-  mood: {
-    backgroundColor: T.paper3,
-    borderColor: T.line2,
-    borderWidth: 1.5,
-    borderRadius: T.r.lg,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+  safe: { flex: 1 },
+  body: { flex: 1, padding: 24, justifyContent: "center" },
+  kicker: { fontFamily: T.mono, fontSize: 10.5, letterSpacing: 2.6, color: T.halo },
+  title: {
+    fontFamily: T.serifLight,
+    fontSize: 32,
+    lineHeight: 39,
+    color: T.duskInk,
+    marginTop: 10,
+    letterSpacing: -0.3,
   },
-  moodOn: { borderColor: T.dusk2, backgroundColor: T.dusk },
-  moodLabel: { fontSize: 20, fontFamily: T.serif, color: T.ink },
-  moodLabelOn: { color: T.paper3 },
-  moodHint: { fontSize: 13, color: T.inkFaint, marginTop: 2 },
-  moodHintOn: { color: T.halo },
+  mood: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: "rgba(254,252,249,0.05)",
+    borderColor: "rgba(169,167,224,0.25)",
+    borderWidth: 1.5,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+  },
+  moodLight: { width: 14, height: 14, borderRadius: 7 },
+  moodLabel: { fontSize: 20, fontFamily: T.serif, color: T.duskInk },
+  moodHint: { fontSize: 12.5, color: "#a8a4cb", marginTop: 2, fontFamily: T.sans },
   note: {
-    backgroundColor: T.paper3,
-    borderColor: T.line,
+    backgroundColor: "rgba(254,252,249,0.05)",
+    borderColor: "rgba(169,167,224,0.25)",
     borderWidth: 1,
-    borderRadius: T.r.card,
-    color: T.ink,
+    borderRadius: 14,
+    color: T.duskInk,
+    fontFamily: T.sans,
     fontSize: 15,
     padding: 14,
-    minHeight: 74,
+    minHeight: 70,
     marginTop: 16,
     textAlignVertical: "top",
   },
-  error: { color: T.urgent, marginTop: 12, fontSize: 13.5 },
+  error: { color: "#e8b39a", marginTop: 12, fontSize: 13.5, fontFamily: T.sans },
   submit: {
-    backgroundColor: T.dusk,
-    borderRadius: T.r.pill,
+    backgroundColor: T.paper3,
+    borderRadius: 999,
     paddingVertical: 17,
     alignItems: "center",
     marginTop: 18,
+    shadowColor: T.halo,
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
   },
-  submitText: { color: "#fff", fontSize: 17, fontWeight: "600" },
-  cancel: { textAlign: "center", color: T.inkSoft, marginTop: 16, fontSize: 15 },
-  doneWrap: { alignItems: "center", justifyContent: "center", gap: 14 },
-  calmDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  submitText: { color: T.dusk, fontSize: 17, fontFamily: T.sansSemi },
+  cancel: {
+    textAlign: "center",
+    color: "#a8a4cb",
+    marginTop: 16,
+    fontSize: 15,
+    fontFamily: T.sans,
+  },
+  doneWrap: { alignItems: "center", justifyContent: "center", gap: 16 },
+  doneStage: { width: 140, height: 140, alignItems: "center", justifyContent: "center" },
+  doneRing: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: T.calm,
+  },
+  doneDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: T.calm,
     shadowColor: T.calm,
-    shadowOpacity: 0.7,
-    shadowRadius: 12,
+    shadowOpacity: 0.9,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
   },
-  doneTitle: { fontFamily: T.serif, fontSize: 30, color: T.ink },
-  doneSub: { color: T.inkSoft, fontSize: 15 },
+  doneTitle: { fontFamily: T.serifLight, fontSize: 33, color: T.duskInk, letterSpacing: -0.3 },
+  doneSub: { color: "#c9c6e4", fontSize: 15, fontFamily: T.sans },
 });

@@ -52,9 +52,9 @@ function wavePath(phase: number): string {
   for (let i = 0; i <= N; i++) {
     const x = -20 + (1480 * i) / N;
     const t = i / N;
-    const crest = 42 * Math.sin(Math.PI * t); // the broad lift of a horizon
-    const wave1 = 16 * Math.sin(t * Math.PI * 2 * 1.7 + phase);
-    const wave2 = 9 * Math.sin(t * Math.PI * 2 * 3.3 + phase * 2.1 + 1.2);
+    const crest = 46 * Math.sin(Math.PI * t); // the broad lift of a horizon
+    const wave1 = 17 * Math.sin(t * Math.PI * 2 * 0.8 + phase);
+    const wave2 = 7 * Math.sin(t * Math.PI * 2 * 1.5 + phase * 2.1 + 1.2);
     const y = 150 - crest - wave1 - wave2;
     points.push(`${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`);
   }
@@ -207,6 +207,11 @@ export function HorizonArc({ variant, caption }: { variant: Variant; caption?: s
           </g>
         ))}
       </svg>
+
+      {/* the same paper grain as the daylight sections, so the risen
+          ground and the section it becomes are one material — no step
+          in tone at the join */}
+      <div className="grain" />
 
       {caption && (
         <p

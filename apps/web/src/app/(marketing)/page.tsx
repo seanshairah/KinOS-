@@ -34,7 +34,7 @@ function AmbientLight({ variant = 0 }: { variant?: 0 | 1 }) {
         <>
           <div
             className="orb orb-a"
-            style={{ width: 520, height: 520, top: "-18%", right: "-8%", background: "radial-gradient(circle, rgba(169,167,224,.2), transparent 65%)" }}
+            style={{ width: 520, height: 520, top: "-34%", right: "-10%", background: "radial-gradient(circle, rgba(169,167,224,.14), transparent 65%)" }}
           />
           <div
             className="orb orb-b"
@@ -45,7 +45,7 @@ function AmbientLight({ variant = 0 }: { variant?: 0 | 1 }) {
         <>
           <div
             className="orb orb-b"
-            style={{ width: 560, height: 560, top: "-14%", left: "-10%", background: "radial-gradient(circle, rgba(169,167,224,.17), transparent 65%)" }}
+            style={{ width: 560, height: 560, top: "-32%", left: "-12%", background: "radial-gradient(circle, rgba(169,167,224,.12), transparent 65%)" }}
           />
           <div
             className="orb orb-a"

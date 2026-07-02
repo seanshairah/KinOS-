@@ -1,29 +1,32 @@
 import { useCallback, useEffect, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { api, ApiError, type Orbit } from "@/lib/api";
+import * as Haptics from "expo-haptics";
+import { api, ApiError, type Me, type Orbit } from "@/lib/api";
 import { useSession } from "@/lib/session";
+import { OrbitLive } from "@/components/orbit-live";
 import { EmptyNote, Screen } from "@/components/screen";
-import { T } from "@/lib/theme";
+import { greeting, T } from "@/lib/theme";
 
-const STATUS: Record<Orbit["status"], { color: string; word: string }> = {
-  steady: { color: T.calm, word: "Steady" },
-  attention: { color: T.ember, word: "Attention" },
-  urgent: { color: T.urgent, word: "Urgent" },
-};
+/**
+ * Home is not a dashboard — it's the family's sky tonight. The orbit
+ * breathes at the top; beneath it, the one sentence that matters, and
+ * a lamplight for each person you might light right now.
+ */
 
 function timeAgo(iso: string | null): string {
   if (!iso) return "no check-in yet";
   const mins = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (mins < 60) return `checked in ${mins}m ago`;
+  if (mins < 60) return `${mins}m ago`;
   const hours = Math.round(mins / 60);
-  if (hours < 48) return `checked in ${hours}h ago`;
-  return `checked in ${Math.round(hours / 24)}d ago`;
+  if (hours < 48) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
 }
 
 export default function OrbitScreen() {
   const { token, signOut } = useSession();
   const [orbits, setOrbits] = useState<Orbit[] | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,8 +34,9 @@ export default function OrbitScreen() {
     if (!token) return;
     try {
       setError(null);
-      const res = await api.orbits(token);
-      setOrbits(res.orbits);
+      const [orbitsRes, meRes] = await Promise.all([api.orbits(token), api.me(token)]);
+      setOrbits(orbitsRes.orbits);
+      setMe(meRes);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         await signOut();
@@ -49,10 +53,21 @@ export default function OrbitScreen() {
     void load();
   }, [load]);
 
+  const attentionCount = (orbits ?? []).reduce((n, o) => n + o.openAttention, 0);
+  const firstName = me?.member?.displayName?.split(" ")[0];
+
   return (
     <Screen
-      title="Orbit View"
-      sub="The people you love, at a glance."
+      title={firstName ? `${greeting()}, ${firstName}` : greeting()}
+      sub={
+        orbits === null
+          ? "Opening the family's sky…"
+          : attentionCount === 0
+            ? "Nothing needs you right now — the sky is calm."
+            : attentionCount === 1
+              ? "One thing quietly needs someone."
+              : `${attentionCount} things quietly need someone.`
+      }
       refreshing={refreshing}
       onRefresh={() => {
         setRefreshing(true);
@@ -60,104 +75,115 @@ export default function OrbitScreen() {
       }}
     >
       {error && <Text style={s.error}>{error}</Text>}
+
       {orbits && orbits.length === 0 && (
         <EmptyNote text={"No orbits yet.\nStart your family space on the web — this app joins it."} />
       )}
-      {(orbits ?? []).map((o) => {
-        const st = STATUS[o.status];
-        return (
-          <View key={o.subjectId} style={s.card}>
-            <View style={s.cardTop}>
-              <View style={s.avatar}>
-                <Text style={s.avatarText}>{o.name.slice(0, 1).toUpperCase()}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.name}>{o.name}</Text>
-                <Text style={s.meta}>
-                  {timeAgo(o.lastCheckin)}
-                  {o.lastCheckinMood ? ` · ${o.lastCheckinMood}` : ""}
-                </Text>
-              </View>
-              <View style={[s.statusPill, { borderColor: st.color }]}>
-                <View style={[s.statusDot, { backgroundColor: st.color }]} />
-                <Text style={[s.statusWord, { color: st.color }]}>{st.word}</Text>
-              </View>
-            </View>
 
-            {o.nextAppointment && (
-              <Text style={s.appt}>
-                {o.nextAppointment.title} ·{" "}
-                {new Date(o.nextAppointment.starts_at).toLocaleDateString(undefined, {
-                  weekday: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-                {o.nextAppointment.transport_confirmed ? " · transport ✓" : " · transport open"}
-              </Text>
-            )}
-
-            <Pressable
-              style={s.checkinButton}
-              onPress={() =>
-                router.push({
-                  pathname: "/check-in",
-                  params: { subjectId: o.subjectId, name: o.name },
-                })
-              }
-            >
-              <Text style={s.checkinText}>Check in for {o.name}</Text>
-            </Pressable>
+      {orbits && orbits.length > 0 && (
+        <>
+          <View style={{ alignItems: "center", marginTop: -6 }}>
+            <OrbitLive orbits={orbits} />
           </View>
-        );
-      })}
+
+          {orbits.map((o) => (
+            <View key={o.subjectId} style={s.card}>
+              <View style={s.cardRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.name}>{o.name}</Text>
+                  <Text style={s.meta}>
+                    {o.lastCheckin
+                      ? `checked in ${timeAgo(o.lastCheckin)}${o.lastCheckinMood ? ` · ${o.lastCheckinMood}` : ""}`
+                      : "no check-in yet today"}
+                  </Text>
+                  {o.nextAppointment && (
+                    <Text style={s.appt}>
+                      {o.nextAppointment.title} ·{" "}
+                      {new Date(o.nextAppointment.starts_at).toLocaleDateString(undefined, {
+                        weekday: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      {o.nextAppointment.transport_confirmed ? " · transport ✓" : " · transport open"}
+                    </Text>
+                  )}
+                </View>
+                <View
+                  style={[
+                    s.statusDot,
+                    {
+                      backgroundColor:
+                        o.status === "steady" ? T.calm : o.status === "attention" ? T.ember : T.urgent,
+                      shadowColor:
+                        o.status === "steady" ? T.calm : o.status === "attention" ? T.ember : T.urgent,
+                    },
+                  ]}
+                />
+              </View>
+              <Pressable
+                style={({ pressed }) => [s.checkin, pressed && { opacity: 0.85 }]}
+                onPress={async () => {
+                  await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push({
+                    pathname: "/check-in",
+                    params: { subjectId: o.subjectId, name: o.name },
+                  });
+                }}
+              >
+                <View style={s.checkinGlow} />
+                <Text style={s.checkinText}>Check in for {o.name}</Text>
+              </Pressable>
+            </View>
+          ))}
+        </>
+      )}
     </Screen>
   );
 }
 
 const s = StyleSheet.create({
-  error: { color: T.inkSoft, fontSize: 13.5 },
+  error: { color: "#c9c6e4", fontSize: 13.5, fontFamily: T.sans },
   card: {
-    backgroundColor: T.paper3,
-    borderColor: T.line,
+    backgroundColor: "rgba(254,252,249,0.06)",
+    borderColor: "rgba(169,167,224,0.22)",
     borderWidth: 1,
-    borderRadius: T.r.lg,
-    padding: 16,
-    gap: 12,
-    shadowColor: T.ink,
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-  },
-  cardTop: { flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar: {
-    width: 44,
-    height: 44,
     borderRadius: 22,
-    backgroundColor: T.dusk,
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 17,
+    gap: 13,
   },
-  avatarText: { color: T.paper3, fontFamily: T.serif, fontSize: 19 },
-  name: { fontFamily: T.serif, fontSize: 19, color: T.ink },
-  meta: { color: T.inkFaint, fontSize: 12.5, marginTop: 2, fontFamily: T.mono },
-  statusPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderRadius: T.r.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+  cardRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  name: { fontFamily: T.serif, fontSize: 22, color: T.duskInk, letterSpacing: -0.2 },
+  meta: { color: T.halo, fontSize: 11.5, marginTop: 3, fontFamily: T.mono },
+  appt: { color: "#c9c6e4", fontSize: 12, marginTop: 7, fontFamily: T.mono },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 8,
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 5,
   },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusWord: { fontSize: 11.5, fontWeight: "600" },
-  appt: { color: T.inkSoft, fontSize: 13, fontFamily: T.mono },
-  checkinButton: {
-    backgroundColor: T.dusk,
-    borderRadius: T.r.pill,
+  checkin: {
+    backgroundColor: T.paper3,
+    borderRadius: 999,
     paddingVertical: 13,
     alignItems: "center",
+    overflow: "hidden",
+    shadowColor: T.halo,
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
   },
-  checkinText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  checkinGlow: {
+    position: "absolute",
+    top: -22,
+    width: 90,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(169,167,224,0.25)",
+  },
+  checkinText: { color: T.dusk, fontSize: 15, fontFamily: T.sansSemi },
 });
