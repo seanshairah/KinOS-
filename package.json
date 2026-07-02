@@ -2,7 +2,7 @@
   "name": "kinos",
   "private": true,
   "version": "0.1.0",
-  "description": "KinOS — the private family operating system for the people you love.",
+  "description": "KinOS \u2014 the private family operating system for the people you love.",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=20"
@@ -22,5 +22,15 @@
   "devDependencies": {
     "prettier": "^3.4.2",
     "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "packageExtensions": {
+      "next": {
+        "dependencies": {
+          "@types/react": "^19.0.2",
+          "@types/react-dom": "^19.0.2"
+        }
+      }
+    }
   }
 }
