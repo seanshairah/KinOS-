@@ -1,11 +1,12 @@
 import {
   addRecordItemForm,
 } from "@/lib/actions/forms";
+import { uploadDocumentForm } from "@/lib/actions/documents";
 import { EmptyState, Eyebrow, Panel, Pill } from "@kinos/ui";
 
 import { AskMemory } from "@/components/ask-memory";
 import { requireFamilyContext } from "@/lib/data/context";
-import { listRecordItems, listSubjects } from "@/lib/data/record";
+import { listDocuments, listRecordItems, listSubjects } from "@/lib/data/record";
 
 const inputClass =
   "rounded-card border border-line bg-paper px-3 py-2 text-[13.5px] text-ink placeholder:text-ink-faint focus:border-dusk-2";
@@ -26,9 +27,10 @@ export default async function RecordPage({
 }) {
   const { q } = await searchParams;
   const ctx = await requireFamilyContext();
-  const [items, subjects] = await Promise.all([
+  const [items, subjects, documents] = await Promise.all([
     listRecordItems(ctx.userId, q),
     listSubjects(ctx.userId),
+    listDocuments(ctx.userId),
   ]);
 
   return (
@@ -90,6 +92,58 @@ export default async function RecordPage({
             Save to the record
           </button>
         </form>
+      </Panel>
+
+      <Panel className="flex flex-col gap-3">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+          Document vault
+        </h2>
+        <p className="text-[13px] leading-relaxed text-ink-soft">
+          Prescriptions, reports, IDs, school forms — filed once, findable years later.
+          Health-private documents stay with those who hold health access.
+        </p>
+        <form action={uploadDocumentForm} className="grid gap-2 sm:grid-cols-2">
+          <select name="subjectId" required className={inputClass}>
+            {subjects.map((s) => (
+              <option key={s.id} value={s.id}>
+                For {s.display_name}
+              </option>
+            ))}
+          </select>
+          <input name="title" required placeholder="What is it — e.g. Amlodipine prescription" className={inputClass} />
+          <input
+            name="file"
+            type="file"
+            required
+            accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
+            className="text-[12.5px] text-ink-soft sm:col-span-2"
+            aria-label="Document file"
+          />
+          <label className="flex items-center gap-2 text-[13px] text-ink-soft sm:col-span-2">
+            <input type="checkbox" name="privacy" value="medical_private" /> Health-private
+          </label>
+          <button className="justify-self-start rounded-pill bg-dusk px-4 py-2 text-[13px] font-medium text-white">
+            Add to the vault
+          </button>
+        </form>
+        {documents.length > 0 && (
+          <div className="mt-1 flex flex-col">
+            {documents.map((doc) => (
+              <div key={doc.id} className="flex items-center justify-between gap-3 border-t border-line py-2.5 first:border-t-0">
+                <div className="min-w-0">
+                  <a href={doc.storage_path} target="_blank" rel="noreferrer" className="text-[14px] font-medium text-dusk-2 no-underline hover:underline">
+                    {doc.title ?? "Document"}
+                  </a>
+                  <div className="mt-0.5 font-mono text-[10.5px] text-ink-faint">
+                    {doc.subject_name} · {doc.mime?.split("/")[1] ?? "file"} ·{" "}
+                    {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(doc.created_at))}
+                  </div>
+                </div>
+                {doc.privacy_level === "medical_private" && <Pill tone="attn">health-private</Pill>}
+              </div>
+            ))}
+          </div>
+        )}
       </Panel>
 
       {items.length === 0 ? (

@@ -27,6 +27,28 @@ export async function listRecordItems(
   });
 }
 
+export interface DocumentListItem {
+  id: string;
+  subject_id: string;
+  storage_path: string;
+  mime: string | null;
+  title: string | null;
+  privacy_level: string;
+  created_at: string;
+  subject_name: string;
+}
+
+export async function listDocuments(userId: string): Promise<DocumentListItem[]> {
+  return withUser(userId, async (db) => {
+    const res = await db.query(
+      `select d.*, s.display_name as subject_name
+       from document d join care_subject s on s.id = d.subject_id
+       order by d.created_at desc limit 60`,
+    );
+    return res.rows;
+  });
+}
+
 export async function listSubjects(userId: string): Promise<CareSubjectRow[]> {
   return withUser(userId, async (db) => {
     const res = await db.query(`select * from care_subject order by created_at`);

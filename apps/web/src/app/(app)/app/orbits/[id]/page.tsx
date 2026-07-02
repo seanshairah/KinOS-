@@ -326,6 +326,12 @@ export default async function OrbitDetailPage({
               <option value="normal">Normal</option>
               <option value="high">High</option>
             </select>
+<select name="repeat" className={inputClass} defaultValue="none">
+              <option value="none">Doesn&apos;t repeat</option>
+              <option value="day">Repeats daily</option>
+              <option value="week">Repeats weekly</option>
+              <option value="month">Repeats monthly</option>
+            </select>
             <button className="self-start rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">Assign</button>
           </form>
         </details>

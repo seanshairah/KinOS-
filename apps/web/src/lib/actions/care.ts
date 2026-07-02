@@ -14,6 +14,7 @@ const dutySchema = z.object({
   ownerMemberId: z.string().uuid().optional().or(z.literal("")),
   dueAt: z.string().optional().or(z.literal("")),
   priority: z.enum(["low", "normal", "high"]).default("normal"),
+  repeat: z.enum(["none", "day", "week", "month"]).default("none"),
 });
 
 export async function createDutyAction(formData: FormData): Promise<ActionResult> {
@@ -24,19 +25,21 @@ export async function createDutyAction(formData: FormData): Promise<ActionResult
     ownerMemberId: formData.get("ownerMemberId") ?? "",
     dueAt: formData.get("dueAt") ?? "",
     priority: formData.get("priority") ?? "normal",
+    repeat: formData.get("repeat") ?? "none",
   });
   if (!parsed.success) return { ok: false, message: "A duty needs at least a name." };
 
   await withUser(ctx.userId, async (db) => {
     await db.query(
-      `insert into duty (subject_id, title, owner_member_id, due_at, priority, created_by)
-       values ($1, $2, $3, $4, $5, $6)`,
+      `insert into duty (subject_id, title, owner_member_id, due_at, priority, recurrence, created_by)
+       values ($1, $2, $3, $4, $5, $6, $7)`,
       [
         parsed.data.subjectId,
         parsed.data.title,
         parsed.data.ownerMemberId || null,
         parsed.data.dueAt ? new Date(parsed.data.dueAt).toISOString() : null,
         parsed.data.priority,
+        parsed.data.repeat === "none" ? null : JSON.stringify({ every: parsed.data.repeat }),
         ctx.member.id,
       ],
     );
@@ -63,7 +66,7 @@ export async function completeDutyAction(formData: FormData): Promise<ActionResu
   await withUser(ctx.userId, async (db) => {
     const res = await db.query(
       `update duty set status = 'done', completed_at = now() where id = $1
-       returning subject_id, title`,
+       returning subject_id, title, owner_member_id, due_at, priority, recurrence, created_by`,
       [dutyId],
     );
     const duty = res.rows[0];
@@ -73,6 +76,35 @@ export async function completeDutyAction(formData: FormData): Promise<ActionResu
          where dedupe_key = $1 and status in ('open','ack')`,
         [`duty_overdue:${dutyId}`],
       );
+
+      // A rhythm, not a one-off: roll the next occurrence forward.
+      const every = (duty.recurrence as { every?: string } | null)?.every;
+      if (every === "day" || every === "week" || every === "month") {
+        const base = duty.due_at ? new Date(duty.due_at) : new Date();
+        const next = new Date(base);
+        if (every === "day") next.setDate(next.getDate() + 1);
+        if (every === "week") next.setDate(next.getDate() + 7);
+        if (every === "month") next.setMonth(next.getMonth() + 1);
+        // Never schedule into the past after a late completion.
+        while (next.getTime() < Date.now()) {
+          if (every === "day") next.setDate(next.getDate() + 1);
+          else if (every === "week") next.setDate(next.getDate() + 7);
+          else next.setMonth(next.getMonth() + 1);
+        }
+        await db.query(
+          `insert into duty (subject_id, title, owner_member_id, due_at, priority, recurrence, created_by)
+           values ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            duty.subject_id,
+            duty.title,
+            duty.owner_member_id,
+            next.toISOString(),
+            duty.priority,
+            JSON.stringify({ every }),
+            duty.created_by,
+          ],
+        );
+      }
     }
   });
 

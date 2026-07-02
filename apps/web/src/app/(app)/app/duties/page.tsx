@@ -57,7 +57,13 @@ export default async function DutiesPage() {
             <option value="normal">Normal priority</option>
             <option value="high">High priority</option>
           </select>
-          <button className="rounded-pill bg-dusk px-4 py-2 text-[13px] font-medium text-white hover:bg-dusk-2">
+<select name="repeat" className={inputClass} defaultValue="none">
+            <option value="none">Doesn&apos;t repeat</option>
+            <option value="day">Repeats daily</option>
+            <option value="week">Repeats weekly</option>
+            <option value="month">Repeats monthly</option>
+          </select>
+                    <button className="rounded-pill bg-dusk px-4 py-2 text-[13px] font-medium text-white hover:bg-dusk-2">
             Assign duty
           </button>
         </form>
