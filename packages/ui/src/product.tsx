@@ -143,15 +143,15 @@ export function AttentionItem({
       className={cx(
         "flex gap-3 rounded-card border p-4",
         urgent
-          ? "border-urgent/40 bg-[#fdf1ee]"
-          : "border-ember-soft bg-[#fdf7ee]",
+          ? "border-urgent/40 bg-urgent-bg"
+          : "border-ember-soft bg-attn-bg",
       )}
     >
       <div
         aria-hidden
         className={cx(
           "grid h-[34px] w-[34px] flex-none place-items-center rounded-[9px]",
-          urgent ? "bg-[#f2d3cb] text-[#8a2f1e]" : "bg-ember-soft text-[#8a531b]",
+          urgent ? "bg-urgent-bg text-urgent" : "bg-ember-soft text-ember-text",
         )}
       >
         {icon ?? <ClockIcon />}

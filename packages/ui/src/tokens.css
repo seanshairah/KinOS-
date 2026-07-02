@@ -28,6 +28,12 @@
 
   --urgent: #c25642;
 
+  /* status text/washes — themeable so status reads on paper and on night */
+  --calm-text: #2f6a52;
+  --ember-text: #8a531b;
+  --urgent-bg: #fdf1ee;
+  --attn-bg: #fdf6ec;
+
   --r-sm: 8px;
   --r: 13px;
   --r-lg: 20px;
@@ -71,6 +77,26 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+@keyframes reveal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes card-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
   }
 }
 

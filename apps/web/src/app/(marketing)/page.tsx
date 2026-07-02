@@ -9,6 +9,7 @@ import { HorizonArc } from "@/components/horizon-arc";
 import { OrbitPricing } from "@/components/orbit-pricing";
 import { FAMILY_SATELLITES, OrbitSystem } from "@/components/orbit/orbit-system";
 import { EveningStory } from "@/components/story/evening-story";
+import { FaqList } from "@/components/faq-list";
 import { VoicesDeck } from "@/components/voices-deck";
 
 /**
@@ -488,27 +489,7 @@ export default function LandingPage() {
                 Read the privacy promise →
               </Link>
             </div>
-            <div className="flex flex-col gap-3.5">
-              {FAQS.map((f, i) => (
-                <details
-                  key={f.q}
-                  data-reveal
-                  data-reveal-delay={i * 60}
-                  className="group rounded-[18px] border border-line-2 bg-paper-3 px-6 py-5 shadow-card transition-shadow hover:shadow-float"
-                >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-serif text-[17px] text-ink [&::-webkit-details-marker]:hidden">
-                    {f.q}
-                    <span
-                      aria-hidden
-                      className="grid h-7 w-7 flex-none place-items-center rounded-full border border-line-2 text-[15px] text-dusk-2 transition-transform duration-300 group-open:rotate-45"
-                    >
-                      +
-                    </span>
-                  </summary>
-                  <p className="mt-3 max-w-[64ch] text-[14px] leading-[1.7] text-ink-soft">{f.a}</p>
-                </details>
-              ))}
-            </div>
+            <FaqList items={FAQS} />
           </div>
         </section>
       </div>

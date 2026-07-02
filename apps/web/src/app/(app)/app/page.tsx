@@ -88,7 +88,7 @@ export default async function OrbitViewPage() {
         </Link>
         <Link
           href={`/app/emergency?subject=${mine.subject.id}`}
-          className="rounded-orbit border-2 border-urgent/50 bg-paper-3 px-8 py-6 text-center text-[19px] font-semibold text-urgent no-underline hover:bg-[#fdf1ee]"
+          className="rounded-orbit border-2 border-urgent/50 bg-paper-3 px-8 py-6 text-center text-[19px] font-semibold text-urgent no-underline hover:bg-urgent-bg"
         >
           I need the family now
         </Link>

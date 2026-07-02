@@ -17,7 +17,7 @@ const BUTTON_BASE =
 const BUTTON_VARIANTS = {
   primary: "bg-dusk text-white hover:bg-dusk-2",
   ghost: "border border-line bg-paper-3 text-ink hover:border-line-2 hover:bg-paper-2",
-  calm: "bg-calm-soft text-[#2f6a52] hover:brightness-95",
+  calm: "bg-calm-soft text-calm-text hover:brightness-95",
   urgent: "bg-urgent text-white hover:brightness-110",
 } as const;
 
@@ -113,8 +113,8 @@ export type PillTone = "neutral" | "ok" | "attn" | "data";
 
 const PILL_TONES: Record<PillTone, string> = {
   neutral: "border-line text-ink-soft bg-paper",
-  ok: "border-calm-soft text-[#3d7d63] bg-paper",
-  attn: "border-ember-soft text-[#9a641f] bg-[#fdf6ec]",
+  ok: "border-calm-soft text-calm-text bg-paper",
+  attn: "border-ember-soft text-ember-text bg-attn-bg",
   data: "border-line text-dusk-2 bg-paper",
 };
 
@@ -139,8 +139,8 @@ export type OrbitStatus = "steady" | "attention" | "urgent";
 
 export function StatusBadge({ status }: { status: OrbitStatus }) {
   const styles: Record<OrbitStatus, string> = {
-    steady: "bg-calm-soft text-[#2f6a52]",
-    attention: "bg-ember-soft text-[#8a531b]",
+    steady: "bg-calm-soft text-calm-text",
+    attention: "bg-ember-soft text-ember-text",
     urgent: "bg-urgent text-white",
   };
   const labels: Record<OrbitStatus, string> = {
@@ -182,7 +182,7 @@ export function EmptyState({
 
 export function ErrorState({ message, retry }: { message: string; retry?: ReactNode }) {
   return (
-    <div className="rounded-card border border-ember-soft bg-[#fdf7ee] p-4 text-sm text-ink">
+    <div className="rounded-card border border-ember-soft bg-attn-bg p-4 text-sm text-ink">
       <p className="font-medium">Something didn't go through.</p>
       <p className="mt-1 text-ink-soft">{message}</p>
       {retry}

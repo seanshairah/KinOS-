@@ -96,7 +96,7 @@ export default async function DutiesPage() {
               </div>
               <form action={completeDutyForm}>
                 <input type="hidden" name="dutyId" value={duty.id} />
-                <button className="rounded-pill bg-calm-soft px-4 py-2 text-[12.5px] font-medium text-[#2f6a52] hover:brightness-95">
+                <button className="rounded-pill bg-calm-soft px-4 py-2 text-[12.5px] font-medium text-calm-text hover:brightness-95">
                   Done
                 </button>
               </form>

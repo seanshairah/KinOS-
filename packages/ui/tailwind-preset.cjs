@@ -13,9 +13,10 @@ module.exports = {
           ink: "var(--dusk-ink)",
         },
         halo: "var(--halo)",
-        ember: { DEFAULT: "var(--ember)", soft: "var(--ember-soft)" },
-        calm: { DEFAULT: "var(--calm)", soft: "var(--calm-soft)" },
-        urgent: "var(--urgent)",
+        ember: { DEFAULT: "var(--ember)", soft: "var(--ember-soft)", text: "var(--ember-text)" },
+        calm: { DEFAULT: "var(--calm)", soft: "var(--calm-soft)", text: "var(--calm-text)" },
+        urgent: { DEFAULT: "var(--urgent)", bg: "var(--urgent-bg)" },
+        attn: { bg: "var(--attn-bg)" },
       },
       borderRadius: {
         sm: "var(--r-sm)",
