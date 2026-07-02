@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isDatabaseConfigured, withUser } from "@kinos/db";
 import type { MemberRow, WorkspaceRow } from "@kinos/db";
@@ -22,7 +23,19 @@ export async function requireUserId(): Promise<string> {
   return userId;
 }
 
+export const WORKSPACE_COOKIE = "kinos_ws";
+
+/** The cookie-preferred workspace, when a request scope exists. */
+async function preferredWorkspaceId(): Promise<string | null> {
+  try {
+    return (await cookies()).get(WORKSPACE_COOKIE)?.value ?? null;
+  } catch {
+    return null; // outside a request scope (jobs, tests)
+  }
+}
+
 export async function getFamilyContext(userId: string): Promise<FamilyContext | null> {
+  const preferred = await preferredWorkspaceId();
   return withUser(userId, async (db) => {
     const res = await db.query(
       `select m.*, w.id as w_id, w.name as w_name, w.created_by as w_created_by,
@@ -31,10 +44,10 @@ export async function getFamilyContext(userId: string): Promise<FamilyContext | 
        join family_workspace w on w.id = m.workspace_id
        where m.user_id = $1
        order by m.created_at asc
-       limit 1`,
+       limit 12`,
       [userId],
     );
-    const row = res.rows[0];
+    const row = res.rows.find((r) => r.w_id === preferred) ?? res.rows[0];
     if (!row) return null;
     return {
       userId,
@@ -63,4 +76,23 @@ export async function requireFamilyContext(): Promise<FamilyContext> {
   const ctx = await getFamilyContext(userId);
   if (!ctx) redirect("/app/onboarding");
   return ctx;
+}
+
+/** Every family space this person belongs to — for the switcher. */
+export interface MembershipSummary {
+  workspace_id: string;
+  workspace_name: string;
+  role: string;
+}
+
+export async function listMemberships(userId: string): Promise<MembershipSummary[]> {
+  return withUser(userId, async (db) => {
+    const res = await db.query(
+      `select m.workspace_id, w.name as workspace_name, m.role
+       from family_member m join family_workspace w on w.id = m.workspace_id
+       where m.user_id = $1 order by m.created_at asc limit 12`,
+      [userId],
+    );
+    return res.rows as MembershipSummary[];
+  });
 }

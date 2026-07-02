@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { withUser, withService } from "@kinos/db";
@@ -291,4 +292,31 @@ export async function deleteWorkspaceAction(formData: FormData): Promise<ActionR
     db.query(`select delete_workspace($1)`, [ctx.workspace.id]),
   );
   redirect("/app/onboarding");
+}
+
+/**
+ * Switch which family space this browser is looking at. Membership is
+ * verified under RLS before the cookie moves; a forged workspace id
+ * simply matches nothing.
+ */
+export async function switchWorkspaceAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const target = z.string().uuid().safeParse(formData.get("workspaceId"));
+  if (!target.success) redirect("/app/settings");
+  const member = await withUser(userId, async (db) => {
+    const res = await db.query(
+      `select 1 from family_member where workspace_id = $1 and user_id = $2`,
+      [target.data, userId],
+    );
+    return Boolean(res.rows[0]);
+  });
+  if (member) {
+    (await cookies()).set("kinos_ws", target.data, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
+  redirect("/app");
 }
