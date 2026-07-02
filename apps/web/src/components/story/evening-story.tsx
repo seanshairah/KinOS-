@@ -70,13 +70,13 @@ const ACT = {
 } as const;
 
 /**
- * An act's internal animation finishes at 72% of its window and then
- * HOLDS, fully played, for the rest — the reader always gets a still,
- * complete moment before the scene hands off. Nothing finishes while
- * it is already fading.
+ * An act's internal animation finishes at 52% of its window and then
+ * HOLDS, fully played, for the rest — the reader always gets a long,
+ * still, complete moment to digest before the scene hands off. Nothing
+ * finishes while it is already fading.
  */
 const sceneT = (p: number, [a, b]: readonly [number, number]) =>
-  span(p, a, a + (b - a) * 0.72);
+  span(p, a, a + (b - a) * 0.52);
 
 function useScrollProgress(ref: React.RefObject<HTMLElement | null>) {
   const [progress, setProgress] = useState(0);
@@ -109,7 +109,7 @@ function useScrollProgress(ref: React.RefObject<HTMLElement | null>) {
 /** Visibility envelope for an act: gentle in, late and gentle out. */
 function act(p: number, [a, b]: readonly [number, number], hold = false) {
   const on = ease(span(p, a, a + 0.025));
-  const off = hold ? 1 : 1 - ease(span(p, b - 0.018, b));
+  const off = hold ? 1 : 1 - ease(span(p, b - 0.026, b));
   return Math.min(on, off);
 }
 
@@ -186,7 +186,7 @@ export function EveningStory() {
   const closeT = ease(span(p, 0.955, 1));
 
   return (
-    <div ref={containerRef} style={{ height: "1350vh" }}>
+    <div ref={containerRef} style={{ height: "1750vh" }}>
       <div className="sticky top-0 h-screen overflow-hidden">
         {/* one sky, two lights, no boundary */}
         <div aria-hidden className="absolute inset-0" style={{ background: skyBackground(p) }} />
@@ -256,7 +256,7 @@ export function EveningStory() {
           </Scene>
 
           <Scene visible={act(p, [ACT.chaos[0], ACT.chaos[1]])}>
-            <ChatChaos t={span(p, 0.06, 0.16)} dissolve={span(p, 0.175, 0.26)} />
+            <ChatChaos t={span(p, 0.06, 0.145)} dissolve={span(p, 0.195, 0.27)} />
           </Scene>
 
           <Scene visible={act(p, ACT.checkin)}>
