@@ -7,6 +7,7 @@ import { PLANS, type PlanId } from "@kinos/config";
 import { Eyebrow, Panel, Pill } from "@kinos/ui";
 
 import { EnableNotifications } from "@/components/enable-notifications";
+import { InviteLink } from "@/components/invite-link";
 import { requireFamilyContext } from "@/lib/data/context";
 import {
   listAccessLog,
@@ -84,7 +85,7 @@ export default async function SettingsPage() {
               Invite someone
             </summary>
             <form action={inviteMemberForm} className="mt-3 grid gap-2 sm:grid-cols-2">
-              <input name="email" type="email" required placeholder="Their email" className={inputClass} />
+              <input name="email" type="email" placeholder="Their email (optional — or just share the link)" className={inputClass} />
               <select name="role" className={inputClass} defaultValue="member">
                 {Object.entries(ROLE_LABEL).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -104,10 +105,16 @@ export default async function SettingsPage() {
               </button>
             </form>
             {invitations.length > 0 && (
-              <div className="mt-3 flex flex-col gap-1">
+              <div className="mt-3 flex flex-col gap-2">
                 {invitations.map((inv) => (
-                  <div key={inv.id} className="font-mono text-[11.5px] text-ink-faint">
-                    pending · {inv.email} as {inv.role}
+                  <div
+                    key={inv.id}
+                    className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2 first:border-t-0 first:pt-0"
+                  >
+                    <span className="font-mono text-[11.5px] text-ink-faint">
+                      pending · {inv.email ?? "shared link"} as {inv.role}
+                    </span>
+                    <InviteLink token={inv.token} workspace={ctx.workspace.name} />
                   </div>
                 ))}
               </div>
