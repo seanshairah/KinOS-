@@ -9,13 +9,15 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/lib/session";
+import { NightSky } from "@/components/night-sky";
 import { T } from "@/lib/theme";
 
 /**
- * Sign-in the family way: your email, then the six digits it receives.
- * No passwords to forget, nothing to configure.
+ * The front door, at dusk. Your email, then the six digits it receives —
+ * and you're standing inside the family's sky.
  */
 export default function SignIn() {
   const { signIn } = useSession();
@@ -30,8 +32,9 @@ export default function SignIn() {
     setMessage(null);
     try {
       await api.requestCode(email);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setStep("code");
-      setMessage("A six-digit code is on its way to your email.");
+      setMessage("Six digits are on their way to your email.");
     } catch (e) {
       setMessage(e instanceof ApiError ? e.message : "Couldn't reach KinOS — try again.");
     } finally {
@@ -44,9 +47,11 @@ export default function SignIn() {
     setMessage(null);
     try {
       const res = await api.verifyCode(email, code);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await signIn(res.sessionToken);
       router.replace("/(tabs)/orbit");
     } catch (e) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setMessage(e instanceof ApiError ? e.message : "Couldn't reach KinOS — try again.");
     } finally {
       setBusy(false);
@@ -54,12 +59,17 @@ export default function SignIn() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={s.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <View style={s.body}>
-        <View style={s.mark} />
+    <View style={{ flex: 1 }}>
+      <NightSky />
+      <KeyboardAvoidingView
+        style={s.body}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {/* the orbit mark, in miniature */}
+        <View style={s.markWrap}>
+          <View style={s.markRing} />
+          <View style={s.markCore} />
+        </View>
         <Text style={s.wordmark}>
           Kin<Text style={{ color: T.halo }}>OS</Text>
         </Text>
@@ -69,7 +79,7 @@ export default function SignIn() {
 
         {step === "email" ? (
           <>
-            <Text style={s.label}>Your email</Text>
+            <Text style={s.label}>YOUR EMAIL</Text>
             <TextInput
               style={s.input}
               value={email}
@@ -78,10 +88,10 @@ export default function SignIn() {
               autoComplete="email"
               keyboardType="email-address"
               placeholder="you@family.com"
-              placeholderTextColor={T.inkFaint}
+              placeholderTextColor="rgba(169,167,224,.5)"
             />
             <Pressable
-              style={[s.button, busy && s.buttonBusy]}
+              style={({ pressed }) => [s.button, (busy || pressed) && s.buttonDim]}
               disabled={busy || !email.includes("@")}
               onPress={requestCode}
             >
@@ -90,7 +100,7 @@ export default function SignIn() {
           </>
         ) : (
           <>
-            <Text style={s.label}>The six digits from your email</Text>
+            <Text style={s.label}>THE SIX DIGITS FROM YOUR EMAIL</Text>
             <TextInput
               style={[s.input, s.codeInput]}
               value={code}
@@ -98,10 +108,11 @@ export default function SignIn() {
               keyboardType="number-pad"
               maxLength={6}
               placeholder="······"
-              placeholderTextColor={T.inkFaint}
+              placeholderTextColor="rgba(169,167,224,.4)"
+              autoFocus
             />
             <Pressable
-              style={[s.button, busy && s.buttonBusy]}
+              style={({ pressed }) => [s.button, (busy || pressed) && s.buttonDim]}
               disabled={busy || code.length !== 6}
               onPress={verify}
             >
@@ -114,64 +125,83 @@ export default function SignIn() {
         )}
 
         {message && <Text style={s.message}>{message}</Text>}
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: T.night },
   body: { flex: 1, justifyContent: "center", padding: 28 },
-  mark: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: T.paper3,
-    marginBottom: 14,
+  markWrap: { width: 34, height: 34, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  markRing: {
+    position: "absolute",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: "rgba(169,167,224,.5)",
   },
-  wordmark: { color: T.duskInk, fontSize: 22, fontWeight: "700", letterSpacing: 0.5 },
+  markCore: {
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: T.paper3,
+    shadowColor: T.duskInk,
+    shadowOpacity: 0.9,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
+  },
+  wordmark: { color: T.duskInk, fontSize: 21, fontFamily: T.sansSemi, letterSpacing: 0.4 },
   headline: {
-    fontFamily: T.serif,
+    fontFamily: T.serifLight,
     color: T.duskInk,
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 37,
+    lineHeight: 44,
     marginTop: 18,
-    marginBottom: 36,
+    marginBottom: 38,
+    letterSpacing: -0.4,
   },
   label: {
     fontFamily: T.mono,
     color: T.halo,
-    fontSize: 11,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-    marginBottom: 8,
+    fontSize: 10.5,
+    letterSpacing: 2.4,
+    marginBottom: 9,
   },
   input: {
-    backgroundColor: "rgba(254,252,249,0.08)",
+    backgroundColor: "rgba(254,252,249,0.07)",
     borderColor: "rgba(169,167,224,0.35)",
     borderWidth: 1,
-    borderRadius: T.r.card,
+    borderRadius: 14,
     color: T.duskInk,
+    fontFamily: T.sans,
     fontSize: 17,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 15,
   },
-  codeInput: { fontFamily: T.mono, fontSize: 26, letterSpacing: 10, textAlign: "center" },
+  codeInput: { fontFamily: T.mono, fontSize: 28, letterSpacing: 12, textAlign: "center" },
   button: {
     backgroundColor: T.paper3,
-    borderRadius: T.r.pill,
-    paddingVertical: 15,
+    borderRadius: 999,
+    paddingVertical: 16,
     alignItems: "center",
     marginTop: 16,
+    shadowColor: T.halo,
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
   },
-  buttonBusy: { opacity: 0.6 },
-  buttonText: { color: T.dusk, fontSize: 16, fontWeight: "600" },
+  buttonDim: { opacity: 0.65 },
+  buttonText: { color: T.dusk, fontSize: 16, fontFamily: T.sansSemi },
   link: {
     color: T.halo,
     textAlign: "center",
     marginTop: 18,
     fontSize: 14,
+    fontFamily: T.sans,
     textDecorationLine: "underline",
   },
-  message: { color: "#c9c6e4", marginTop: 18, fontSize: 14, lineHeight: 20 },
+  message: { color: "#c9c6e4", marginTop: 18, fontSize: 14, lineHeight: 20, fontFamily: T.sans },
 });

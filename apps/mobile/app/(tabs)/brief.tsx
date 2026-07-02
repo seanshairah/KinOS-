@@ -5,7 +5,7 @@ import { useSession } from "@/lib/session";
 import { EmptyNote, Screen } from "@/components/screen";
 import { T } from "@/lib/theme";
 
-/** The letter from home — read in thirty seconds, kept forever. */
+/** The letter from home — a lit window of paper in the night. */
 export default function BriefScreen() {
   const { token } = useSession();
   const [briefs, setBriefs] = useState<Brief[] | null>(null);
@@ -30,7 +30,7 @@ export default function BriefScreen() {
   return (
     <Screen
       title="Daily Brief"
-      sub="The day, written calmly."
+      sub="The day, written calmly — read in thirty seconds."
       refreshing={refreshing}
       onRefresh={() => {
         setRefreshing(true);
@@ -44,9 +44,9 @@ export default function BriefScreen() {
         <View key={b.id} style={s.letter}>
           <Text style={s.meta}>
             {b.kind.toUpperCase()} · FOR {b.subjectName.toUpperCase()} ·{" "}
-            {new Date(b.createdAt).toLocaleDateString(undefined, {
-              weekday: "long",
-            }).toUpperCase()}
+            {new Date(b.createdAt)
+              .toLocaleDateString(undefined, { weekday: "long" })
+              .toUpperCase()}
           </Text>
           <Text style={s.body}>{b.body}</Text>
           <Text style={s.footer}>kept forever in the Family Record</Text>
@@ -59,23 +59,21 @@ export default function BriefScreen() {
 const s = StyleSheet.create({
   letter: {
     backgroundColor: T.paper3,
-    borderColor: T.line2,
-    borderWidth: 1,
-    borderRadius: T.r.lg,
-    padding: 20,
-    shadowColor: T.dusk,
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
+    borderRadius: 22,
+    padding: 22,
+    shadowColor: T.halo,
+    shadowOpacity: 0.35,
+    shadowRadius: 26,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
+    elevation: 10,
   },
-  meta: { fontFamily: T.mono, fontSize: 10.5, letterSpacing: 1, color: T.inkFaint },
+  meta: { fontFamily: T.mono, fontSize: 10, letterSpacing: 1, color: T.inkFaint },
   body: {
     fontFamily: T.serif,
-    fontSize: 18.5,
-    lineHeight: 29,
+    fontSize: 19.5,
+    lineHeight: 31,
     color: T.ink,
-    marginTop: 12,
+    marginTop: 13,
   },
   footer: {
     fontFamily: T.mono,
