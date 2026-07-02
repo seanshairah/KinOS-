@@ -2,6 +2,7 @@ export * from "./types";
 export * from "./normalize";
 export * from "./baseline";
 export * from "./attention";
+export * from "./health";
 export * from "./brief";
 export * from "./patterns";
 export * from "./escalation";

@@ -370,7 +370,7 @@ async function updateMetricBaseline(subjectId: string, value: unknown): Promise<
 }
 
 /** Welford update persisted as (mean, stddev, n). */
-async function upsertBaseline(subjectId: string, metric: string, value: number): Promise<void> {
+export async function upsertBaseline(subjectId: string, metric: string, value: number): Promise<void> {
   await withService(async (db) => {
     const existing = await db.query(
       `select mean, stddev, n from baseline_metric
