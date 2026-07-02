@@ -5,6 +5,7 @@ import { Lamplight } from "@/components/lamplight";
 import { Magnetic } from "@/components/magnetic";
 import { ScrollThread } from "@/components/scroll-thread";
 import { DuskField } from "@/components/dusk-field";
+import { HorizonArc } from "@/components/horizon-arc";
 import { OrbitPricing } from "@/components/orbit-pricing";
 import { FAMILY_SATELLITES, OrbitSystem } from "@/components/orbit/orbit-system";
 import { EveningStory } from "@/components/story/evening-story";
@@ -24,44 +25,6 @@ import { VoicesDeck } from "@/components/voices-deck";
  */
 
 const NIGHT = "#2C2A4F";
-const DAY = "#fbf8f3"; // --paper-2
-
-/* The story's first daylight — two cities glowing at the horizon. */
-const LONDON_DAY = "#93A9CC";
-const HARARE_DAY = "#E5B078";
-
-/**
- * A horizon between night and day. Long, quiet, and eased — many close
- * stops so the eye never finds an edge, and only a whisper of ember.
- * The endpoint colours are exactly the colours of the sections they
- * touch, so the page reads as one continuous canvas.
- */
-function SkyBridge({ to, caption }: { to: "day" | "night"; caption?: string }) {
-  const gradient =
-    to === "day"
-      ? `linear-gradient(180deg, ${NIGHT} 0%, #34315C 14%, #45416F 30%, #5D5786 46%, #7F7597 62%, #A99C9F 76%, #D2C6B4 88%, ${DAY} 100%)`
-      : `linear-gradient(180deg, ${DAY} 0%, #D2C6B4 12%, #A99C9F 24%, #7F7597 38%, #5D5786 54%, #45416F 70%, #34315C 86%, ${NIGHT} 100%)`;
-  return (
-    <div aria-hidden className="relative h-56 w-full overflow-hidden md:h-72" style={{ background: gradient }}>
-      {/* a whisper of ember at the horizon line */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(60% 55% at 50% ${to === "day" ? "70%" : "30%"}, rgba(217,138,61,.09), transparent 70%)`,
-        }}
-      />
-      {caption && (
-        <p
-          className={`absolute inset-x-0 text-center font-mono text-[11.5px] uppercase tracking-[0.22em] ${
-            to === "day" ? "top-[26%] text-white/70" : "top-[62%] text-white/70"
-          }`}
-        >
-          {caption}
-        </p>
-      )}
-    </div>
-  );
-}
 
 /** Slow pools of light + paper grain — daylight sections stay alive. */
 function AmbientLight({ variant = 0 }: { variant?: 0 | 1 }) {
@@ -310,22 +273,8 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ————— rewind: dusk brightens back into this afternoon,
-                the two cities already glowing softly at its edges ————— */}
-      <div
-        aria-hidden
-        className="relative h-64 md:h-80"
-        style={{
-          background:
-            `radial-gradient(80% 85% at 8% 100%, ${LONDON_DAY}4D, transparent 60%),` +
-            `radial-gradient(80% 85% at 92% 100%, ${HARARE_DAY}59, transparent 60%),` +
-            `linear-gradient(180deg, ${NIGHT} 0%, #34315C 18%, #454273 36%, #5D5A94 54%, #7E82AC 72%, #93A0C0 86%, #A9B6D1 100%)`,
-        }}
-      >
-        <p className="absolute inset-x-0 top-[34%] text-center font-mono text-[11.5px] uppercase tracking-[0.22em] text-white/70">
-          rewind to this afternoon
-        </p>
-      </div>
+      {/* ————— rewind: the horizon turns, night back into afternoon ————— */}
+      <HorizonArc variant="rewind" caption="rewind to this afternoon" />
 
       {/* ————— 5.2 → 5.9 the evening itself ————— */}
       <section id="story" aria-label="One evening with a family">
@@ -438,7 +387,7 @@ export default function LandingPage() {
       </div>
 
       {/* ————— morning comes ————— */}
-      <SkyBridge to="day" caption="and then — morning" />
+      <HorizonArc variant="dawn" caption="and then — morning" />
 
       <div className="bg-paper-2">
         {/* ————— 5.13 product surfaces, in daylight ————— */}
@@ -551,7 +500,7 @@ export default function LandingPage() {
       </div>
 
       {/* ————— dusk falls once more: the invitation ————— */}
-      <SkyBridge to="night" caption="and when evening comes again" />
+      <HorizonArc variant="nightfall" caption="and when evening comes again" />
 
       <div className="relative" style={{ background: `linear-gradient(180deg, ${NIGHT}, #35335F)` }}>
         <Lamplight />
