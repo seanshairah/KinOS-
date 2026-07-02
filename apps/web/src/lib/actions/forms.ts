@@ -22,6 +22,7 @@ import { setHealthSharingAction } from "./health";
 import { upgradePlanAction } from "./billing";
 import {
   createOrbitAction,
+  deleteWorkspaceAction,
   grantConsentAction,
   inviteMemberAction,
   raiseEmergencyAction,
@@ -84,4 +85,7 @@ export async function setHealthSharingForm(fd: FormData): Promise<void> {
 }
 export async function upgradePlanForm(fd: FormData): Promise<void> {
   await upgradePlanAction(fd);
+}
+export async function deleteWorkspaceForm(fd: FormData): Promise<void> {
+  await deleteWorkspaceAction(fd);
 }

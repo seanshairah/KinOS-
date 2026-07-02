@@ -388,6 +388,63 @@ d("row-level security", () => {
       ).rejects.toThrow();
     });
   });
+
+  describe("workspace deletion", () => {
+    it("a non-admin cannot delete; an admin deletes everything, audit survives", async () => {
+      // Disposable family so the rest of the suite is untouched.
+      const zoeId = (
+        await pool.query<{ id: string }>(
+          `insert into app_user (name, email, email_verified)
+           values ('Zoe', 'zoe+' || extract(epoch from now())::text || '@rls.test', now()) returning id`,
+        )
+      ).rows[0]!.id;
+      const wsZ = await asUser(zoeId, async (c) => {
+        const r = await c.query<{ create_workspace: string }>(
+          `select create_workspace('Family Z', 'Zoe')`,
+        );
+        return r.rows[0]!.create_workspace;
+      });
+      const subjectZ = await asUser(zoeId, async (c) => {
+        const r = await c.query<{ id: string }>(
+          `insert into care_subject (workspace_id, display_name, kind)
+           values ($1, 'Gogo Z', 'elder') returning id`,
+          [wsZ],
+        );
+        return r.rows[0]!.id;
+      });
+      await pool.query(
+        `insert into health_reading (subject_id, metric, value, source)
+         values ($1, 'blood_pressure', '{"systolic":150}', 'manual')`,
+        [subjectZ],
+      );
+
+      // An outsider (Bob) cannot delete it.
+      await expect(
+        asUser(bobId, (c) => c.query(`select delete_workspace($1)`, [wsZ])),
+      ).rejects.toThrow();
+
+      // The admin can; the cascade takes the content with it.
+      await asUser(zoeId, (c) => c.query(`select delete_workspace($1)`, [wsZ]));
+      expect(
+        (await pool.query(`select 1 from family_workspace where id = $1`, [wsZ])).rows,
+      ).toEqual([]);
+      expect(
+        (await pool.query(`select 1 from care_subject where id = $1`, [subjectZ])).rows,
+      ).toEqual([]);
+      expect(
+        (await pool.query(`select 1 from health_reading where subject_id = $1`, [subjectZ])).rows,
+      ).toEqual([]);
+      // The audit row survives the deletion.
+      expect(
+        (
+          await pool.query(
+            `select 1 from access_log where workspace_id = $1 and action = 'workspace_deleted'`,
+            [wsZ],
+          )
+        ).rows,
+      ).toHaveLength(1);
+    });
+  });
 });
 
 if (!url) {
