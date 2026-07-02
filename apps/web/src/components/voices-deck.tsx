@@ -139,7 +139,7 @@ export function VoicesDeck() {
             aria-hidden
             className="h-[6px] w-[6px] rounded-full transition-all duration-300"
             style={{
-              background: i === top ? "var(--dusk-2)" : "var(--line-2)",
+              background: i === top ? "var(--halo)" : "rgba(169,167,224,.3)",
               transform: i === top ? "scale(1.25)" : "none",
             }}
           />

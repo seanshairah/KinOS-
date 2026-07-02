@@ -219,6 +219,41 @@
   }
 }
 
+/* Satellite pulse — presence, quietly alive. */
+@keyframes orbit-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+}
+.orbit-pulse {
+  animation: orbit-pulse 4.5s ease-in-out infinite;
+}
+/* Worry floats — scattered family messages bobbing in the air. */
+@keyframes chat-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--bob-tilt, 0deg));
+  }
+  50% {
+    transform: translateY(-9px) rotate(var(--bob-tilt, 0deg));
+  }
+}
+.chat-bob {
+  animation: chat-bob 5.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .orbit-pulse,
+  .chat-bob {
+    animation: none !important;
+  }
+}
+
 @keyframes cue-drop {
   0%,
   100% {

@@ -1,199 +1,75 @@
 import Link from "next/link";
 import { Eyebrow, OrbitMark } from "@kinos/ui";
+import { ConsentRings } from "@/components/consent-rings";
 import { DuskField } from "@/components/dusk-field";
-import { ScrollStory } from "@/components/scroll-story";
+import { OrbitPricing } from "@/components/orbit-pricing";
+import { FAMILY_SATELLITES, OrbitSystem } from "@/components/orbit/orbit-system";
+import { EveningStory } from "@/components/story/evening-story";
 import { VoicesDeck } from "@/components/voices-deck";
 
 /**
- * The KinOS landing page — one day with a family, told as a sky.
- * Night (the worry) → dawn (what KinOS is) → evening (the story, pinned
- * under living stars) → daylight (how it stays calm, who it's for) →
- * dusk again (belonging, and the invitation). No hard borders, no dead
- * scroll: the sections blend through horizon gradients, and the light
- * sections breathe with drifting light and paper grain.
+ * One Evening in One Orbit — the KinOS landing experience.
+ *
+ * Not stacked sections: one continuous evening. A dusk hero with a
+ * living Orbit, a rewind to late afternoon, one family evening across
+ * London and Harare that darkens into night as you scroll, and then —
+ * without ever leaving that night — the Evening Brief, the Family
+ * Record, the Consent Rings, the product surfaces the visitor already
+ * met inside the story, pricing as Orbit rings, and a calm close.
+ * The visitor enters with worry and leaves with calm.
  */
 
-const NIGHT = "#2c2a4f";
-const DAY = "#fbf8f3";
+const NIGHT = "#2C2A4F";
 
-/** A horizon between night and day — the seam the whole page turns on. */
-function SkyBridge({ to }: { to: "day" | "night" }) {
-  const gradient =
-    to === "day"
-      ? `linear-gradient(180deg, ${NIGHT} 0%, #454273 30%, #8b7da4 56%, #ddcab7 79%, ${DAY} 100%)`
-      : `linear-gradient(180deg, ${DAY} 0%, #ddcab7 21%, #8b7da4 44%, #454273 70%, ${NIGHT} 100%)`;
+/* The story's first daylight — two skies torn from one dusk. */
+const LONDON_DAY = "#93A9CC";
+const HARARE_DAY = "#E5B078";
+
+function SectionHead({
+  n,
+  title,
+  sub,
+}: {
+  n: string;
+  title: string;
+  sub?: string;
+}) {
   return (
-    <div aria-hidden className="relative h-40 w-full overflow-hidden md:h-52" style={{ background: gradient }}>
-      {/* a breath of ember at the horizon line */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(52% 58% at 50% ${to === "day" ? "64%" : "36%"}, rgba(217,138,61,.16), transparent 70%)`,
-        }}
-      />
+    <div data-reveal className="mx-auto flex max-w-[1060px] flex-col gap-2 px-6 md:flex-row md:items-baseline md:gap-4">
+      <span className="font-mono text-[12px] tracking-[0.1em] text-halo">{n}</span>
+      <h2 className="flex-1 font-serif text-[clamp(25px,3.2vw,36px)] font-normal leading-[1.1] tracking-[-0.02em] text-dusk-ink">
+        {title}
+      </h2>
+      {sub && <p className="max-w-[36ch] text-[14px] leading-[1.55] text-[#c9c6e4]">{sub}</p>}
     </div>
   );
 }
 
-/** Slow pools of light that keep daylight sections alive. */
-function AmbientLight({ variant = 0 }: { variant?: 0 | 1 }) {
-  return (
-    <div aria-hidden className="absolute inset-0 overflow-hidden">
-      {variant === 0 ? (
-        <>
-          <div
-            className="orb orb-a"
-            style={{ width: 520, height: 520, top: "-18%", right: "-8%", background: "radial-gradient(circle, rgba(169,167,224,.22), transparent 65%)" }}
-          />
-          <div
-            className="orb orb-b"
-            style={{ width: 420, height: 420, bottom: "-22%", left: "-6%", background: "radial-gradient(circle, rgba(217,138,61,.13), transparent 65%)" }}
-          />
-        </>
-      ) : (
-        <>
-          <div
-            className="orb orb-b"
-            style={{ width: 560, height: 560, top: "-14%", left: "-10%", background: "radial-gradient(circle, rgba(169,167,224,.18), transparent 65%)" }}
-          />
-          <div
-            className="orb orb-a"
-            style={{ width: 440, height: 440, bottom: "-18%", right: "-4%", background: "radial-gradient(circle, rgba(78,158,126,.12), transparent 65%)" }}
-          />
-        </>
-      )}
-      <div className="grain" />
-    </div>
-  );
-}
-
-/** The hero Orbit — the loved one as a lamplight centre, family circling. */
-function HeroOrbit() {
-  return (
-    <div aria-hidden className="grid min-h-[320px] place-items-center md:min-h-[380px]">
-      <svg width="400" height="400" viewBox="0 0 380 380" className="max-w-full text-halo">
-        <defs>
-          <radialGradient id="core-glow">
-            <stop offset="0%" stopColor="#EDEBF6" stopOpacity=".9" />
-            <stop offset="35%" stopColor="#A9A7E0" stopOpacity=".38" />
-            <stop offset="100%" stopColor="#A9A7E0" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="ember-glow">
-            <stop offset="0%" stopColor="#D98A3D" stopOpacity=".55" />
-            <stop offset="100%" stopColor="#D98A3D" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="calm-glow">
-            <stop offset="0%" stopColor="#4E9E7E" stopOpacity=".5" />
-            <stop offset="100%" stopColor="#4E9E7E" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-
-        <circle cx="190" cy="190" r="168" fill="none" stroke="rgba(169,167,224,.16)" strokeWidth="1" />
-        <g className="spin-slow">
-          <circle
-            cx="190" cy="190" r="168" fill="none"
-            stroke="rgba(169,167,224,.45)" strokeWidth="1.2" strokeLinecap="round"
-            strokeDasharray="70 986"
-          />
-        </g>
-        <circle cx="190" cy="190" r="120" fill="none" stroke="rgba(169,167,224,.24)" strokeWidth="1" />
-        <g className="spin-med">
-          <circle
-            cx="190" cy="190" r="120" fill="none"
-            stroke="rgba(217,138,61,.35)" strokeWidth="1.2" strokeLinecap="round"
-            strokeDasharray="52 702"
-          />
-        </g>
-        <circle cx="190" cy="190" r="72" fill="none" stroke="rgba(169,167,224,.34)" strokeWidth="1" />
-
-        {/* the loved one: a steady centre node in lamplight, per the mark */}
-        <circle cx="190" cy="190" r="52" fill="url(#core-glow)" className="breathe" />
-        <circle cx="190" cy="190" r="27" fill="rgba(237,235,246,.16)" />
-        <circle cx="190" cy="190" r="11" fill="#FEFCF9" />
-
-        <g className="spin-fast">
-          <circle cx="262" cy="190" r="13" fill="url(#calm-glow)" />
-          <circle cx="262" cy="190" r="6.5" fill="var(--calm)" />
-          <circle cx="118" cy="190" r="5" fill="var(--dusk-ink)" opacity=".85" />
-        </g>
-        <g className="spin-med">
-          <circle cx="190" cy="70" r="14" fill="url(#ember-glow)" />
-          <circle cx="190" cy="70" r="7" fill="var(--ember)" />
-          <circle cx="296" cy="248" r="5.5" fill="var(--dusk-ink)" opacity=".75" />
-          <circle cx="96" cy="252" r="4.5" fill="var(--halo)" />
-        </g>
-        <g className="spin-slow">
-          <circle cx="358" cy="190" r="5" fill="var(--dusk-ink)" opacity=".6" />
-          <circle cx="120" cy="52" r="4" fill="var(--halo)" opacity=".85" />
-          <circle cx="250" cy="336" r="4.5" fill="var(--dusk-ink)" opacity=".55" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-const PERSONAS = [
-  {
-    n: "01",
-    who: "For the child abroad",
-    line: "Six time zones away, and still the first to know she's okay.",
-    body: "Daily proof instead of daily worry. Every dollar of support visible, receipt by receipt. The clinic visit you can see was handled — from another continent.",
-    feed: [
-      { dot: "calm", text: "morning check-in ✓", meta: "07:12 her time" },
-      { dot: "data", text: "receipt filed · USD 23.50", meta: "Money Pot" },
-      { dot: "halo", text: "evening brief", meta: "read at your 07:00" },
-    ],
-  },
-  {
-    n: "02",
-    who: "For the one holding it down at home",
-    line: "Duties with owners, instead of a phone that never stops.",
-    body: "Assign it once and stop chasing. Appointments carry their own transport plans. What's done, late, or missing is simply visible — to everyone, without a single nagging message.",
-    feed: [
-      { dot: "calm", text: "transport ✓ Sarah", meta: "clinic · 10:00" },
-      { dot: "halo", text: "groceries · due Friday", meta: "repeats weekly" },
-      { dot: "calm", text: "duty settled", meta: "the family saw it" },
-    ],
-  },
-  {
-    n: "03",
-    who: "For the person being cared for",
-    line: "Supported like family. Never watched like a patient.",
-    body: "A check-in that takes one tap. A voice note instead of a form. One button that reaches everyone who loves them — and a say in exactly who sees what.",
-    feed: [
-      { dot: "calm", text: "one-tap check-in", meta: "big, readable type" },
-      { dot: "halo", text: "voice note, not a form", meta: "she talks, it listens" },
-      { dot: "ember", text: "consent — always hers", meta: "revoke any time" },
-    ],
-  },
+/* 5.11 — the evening, kept. */
+const RECORD_ROWS = [
+  ["18:58", "Check-in received"],
+  ["19:04", "Voice note from Grace"],
+  ["19:05", "Dizziness mentioned · worth a check"],
+  ["19:06", "Pharmacy receipt uploaded · USD 23.50"],
+  ["19:10", "Transport duty assigned to Sarah"],
+  ["19:24", "Transport confirmed"],
+  ["20:00", "Evening Brief created"],
 ] as const;
 
-const DOT_COLOR: Record<string, string> = {
-  calm: "var(--calm)",
-  ember: "var(--ember)",
-  data: "var(--dusk-3)",
-  halo: "var(--halo)",
-};
-
-const PRINCIPLES = [
-  {
-    n: "01",
-    title: "Ember means something, or it never appears.",
-    body: "When nothing is wrong, the screen is warm and quiet. Attention is judged against your person's own rhythm — her usual sleep, her usual check-in time — never a generic threshold. Thin evidence stays silent.",
-  },
-  {
-    n: "02",
-    title: "Consent lives in the database, not a settings page.",
-    body: "Every member sees exactly what their role and explicit consent allow — enforced by the database on every single query. Revoke access and it's gone on the very next request. The family's record belongs to the family.",
-  },
-  {
-    n: "03",
-    title: "A memory that answers in plain words.",
-    body: "“When did Dad first mention leg pain?” “Which pharmacy do we use now?” Decisions, documents and moments stay findable years later — the Family Record never forgets what the group chat scrolled past.",
-  },
+/* 5.13 — each surface emerges from something the visitor already saw. */
+const SURFACES = [
+  ["The whole family at a glance", "Orbit View", "Presence first, meaning second, detail on intent."],
+  ["The voice note you heard", "Life Signals", "Family words become quiet, structured awareness."],
+  ["The gap that turned ember", "Attention Needed", "One thing, one owner, one calm escalation path."],
+  ["Sarah taking it", "Duties", "Responsibility with names, due times, and quiet nudges."],
+  ["The clinic tomorrow", "Appointments & Medication", "Visits carry their own plans; doses keep their rhythm."],
+  ["The receipt Grace uploaded", "Money Pot", "Contributions, expenses, and proof — to the cent."],
+  ["The letter at 20:00", "Daily Brief", "The day, written calmly, read in thirty seconds."],
+  ["The evening, kept", "Family Record", "Searchable years later. It never scrolls away."],
+  ["The rings you closed", "Consent Centre", "Access is granted by the family and enforced by the database."],
+  ["The button she hopes to never need", "Emergency Layer", "One tap reaches everyone who loves her."],
 ] as const;
 
-/* The river of moments — a family's quiet life drifting by. */
 const FAQS = [
   {
     q: "Is KinOS a medical device?",
@@ -213,7 +89,7 @@ const FAQS = [
   },
   {
     q: "What does it cost?",
-    a: "One Orbit — one person at the centre, the whole family around them — is free, with no card needed. Growing families add more orbits and the shared Money Pot on the family plan.",
+    a: "One Orbit — one person at the centre, the whole family around them — is free, with no card needed. Growing families add more orbits and the shared Money Pot on the family plans.",
   },
   {
     q: "Whose data is this?",
@@ -221,62 +97,10 @@ const FAQS = [
   },
 ] as const;
 
-const MOMENTS_A = [
-  "Gogo checked in · one tap · 07:12",
-  "evening tablet ✓ · on time",
-  "receipt filed · groceries · $23.50",
-  "Sarah took transport ✓ · clinic 10:00",
-  "voice note → three signals",
-  "brief read in London · 07:04",
-  "duty settled · everyone saw it",
-  "nothing needs attention tonight",
-] as const;
-const MOMENTS_B = [
-  "dizziness · worth a check · Thursday",
-  "consent updated · Mum's choice",
-  "sleep · back to her usual",
-  "Money Pot balanced · to the cent",
-  "appointment carries its own plan",
-  "pattern noticed · gentle, not alarming",
-  "“which pharmacy do we use?” · answered",
-  "the record remembers · three years on",
-] as const;
-
-function MomentPill({ text }: { text: string }) {
-  const tone = text.includes("worth a check")
-    ? "border-ember-soft text-[#8a5a28]"
-    : text.includes("✓") || text.includes("settled") || text.includes("nothing needs")
-      ? "border-calm-soft text-[#2f6a52]"
-      : "border-line text-ink-soft";
-  return (
-    <span
-      className={`mx-1.5 inline-flex flex-none items-center gap-2 rounded-pill border bg-paper-3 px-4 py-2 font-mono text-[12px] shadow-card ${tone}`}
-    >
-      {text}
-    </span>
-  );
-}
-
-function MomentLane({ items, reverse = false }: { items: readonly string[]; reverse?: boolean }) {
-  return (
-    <div className="marquee py-1.5">
-      <div className={`marquee-track ${reverse ? "reverse" : ""}`}>
-        {[0, 1].map((copy) => (
-          <div key={copy} aria-hidden={copy === 1} className="flex flex-none">
-            {items.map((m) => (
-              <MomentPill key={`${copy}-${m}`} text={m} />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function LandingPage() {
   return (
     <>
-      {/* ————— night: the hero, a living dusk sky ————— */}
+      {/* ————— 5.1 dusk hero ————— */}
       <header className="relative isolate overflow-hidden text-dusk-ink">
         <div
           aria-hidden
@@ -292,7 +116,7 @@ export default function LandingPage() {
         <div aria-hidden className="aurora aurora-b z-0" />
         <DuskField />
 
-        <div className="relative z-10 mx-auto grid max-w-[1120px] items-center gap-12 px-7 pb-10 pt-14 md:grid-cols-[1.05fr_.95fr] md:pt-20">
+        <div className="relative z-10 mx-auto grid max-w-[1120px] items-center gap-10 px-6 pb-8 pt-14 md:grid-cols-[1.02fr_.98fr] md:pt-20">
           <div>
             <Eyebrow className="text-halo">Private family operating system</Eyebrow>
             <h1 className="mt-5 font-serif text-[clamp(38px,6.2vw,72px)] font-normal leading-[1.02] tracking-[-0.02em]">
@@ -302,10 +126,9 @@ export default function LandingPage() {
               <br />
               calm orbit.
             </h1>
-            <p className="mt-6 max-w-[30ch] text-[clamp(16px,1.7vw,19px)] leading-[1.5] text-[#d7d5ee]">
-              KinOS turns scattered life updates — check-ins, receipts, medications,
-              appointments — into quiet awareness. The intelligence stays invisible.
-              The peace of mind doesn&apos;t.
+            <p className="mt-6 max-w-[34ch] text-[clamp(16px,1.7vw,19px)] leading-[1.55] text-[#d7d5ee]">
+              KinOS turns scattered family updates into quiet awareness — what happened,
+              what needs attention, who is responsible, and what must not be forgotten.
             </p>
             <div className="mt-8 inline-flex items-center gap-2.5 rounded-pill border border-halo/30 px-4 py-2 font-mono text-[12px] tracking-[0.02em] text-halo">
               <span
@@ -316,282 +139,202 @@ export default function LandingPage() {
             </div>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/sign-in"
+                href="#story"
                 className="lift rounded-pill bg-white px-6 py-3 text-[14px] font-semibold text-dusk no-underline hover:bg-dusk-ink"
+              >
+                Live one evening
+              </Link>
+              <Link
+                href="/sign-in"
+                className="lift rounded-pill border border-halo/40 px-6 py-3 text-[14px] font-medium text-dusk-ink no-underline hover:border-halo"
               >
                 Start your family space
               </Link>
-              <Link
-                href="#story"
-                className="lift rounded-pill border border-halo/40 px-6 py-3 text-[14px] font-medium text-dusk-ink no-underline hover:border-halo"
-              >
-                Live one evening with it
-              </Link>
             </div>
           </div>
-          <HeroOrbit />
+          <div className="flex justify-center">
+            <OrbitSystem size={430} satellites={FAMILY_SATELLITES} className="max-w-full" />
+          </div>
         </div>
 
         <div className="relative z-10 pb-7 text-center">
           <div className="scroll-cue inline-flex flex-col items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.2em] text-halo">
-            <span>scroll · one evening with a family</span>
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
+            <span>hover a light · then scroll</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M6 9l6 6 6-6" />
             </svg>
           </div>
         </div>
       </header>
 
-      {/* ————— dawn ————— */}
-      <SkyBridge to="day" />
+      {/* ————— rewind: one dusk tears into two afternoons ————— */}
+      <div aria-hidden className="relative grid h-44 grid-cols-2 md:h-56">
+        <div style={{ background: `linear-gradient(180deg, ${NIGHT}, ${LONDON_DAY})` }} />
+        <div style={{ background: `linear-gradient(180deg, ${NIGHT}, ${HARARE_DAY})` }} />
+        <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center font-mono text-[11.5px] uppercase tracking-[0.22em] text-white/80">
+          rewind to this afternoon
+        </p>
+      </div>
 
-      {/* ————— morning: the thesis ————— */}
-      <section id="product" className="relative bg-paper-2 py-20">
-        <AmbientLight variant={0} />
-        <div data-reveal className="relative mx-auto max-w-[1120px] px-7">
-          <Eyebrow className="mb-6">The category</Eyebrow>
-          <p className="max-w-[24ch] font-serif text-[clamp(24px,3.6vw,40px)] font-light leading-[1.24] tracking-[-0.01em]">
-            Not another app to check. A <b className="font-medium italic">living record</b> of
-            the people you&apos;re responsible for — that notices what changed, and tells you
-            who needs to act.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-2.5">
-            {[
-              "a health tracker",
-              "a medical diagnosis app",
-              "a caregiver checklist",
-              "a family group chat",
-            ].map((not) => (
-              <span
-                key={not}
-                className="rounded-pill border border-line-2 bg-paper-3 px-3 py-[7px] font-mono text-[12px] text-ink-faint line-through decoration-ember"
-              >
-                {not}
-              </span>
-            ))}
-          </div>
-          <p className="mt-5 text-[16px] font-semibold text-dusk-2">
-            KinOS is the operating layer that connects all of them.
-          </p>
-        </div>
+      {/* ————— 5.2 → 5.9 the evening itself ————— */}
+      <section id="story" aria-label="One evening with a family">
+        <EveningStory />
       </section>
 
-      {/* ————— nightfall, and the story ————— */}
-      <SkyBridge to="night" />
-      <section
-        id="story"
-        className="relative text-dusk-ink"
-        style={{ background: `linear-gradient(180deg, ${NIGHT}, #322f5a 50%, ${NIGHT})` }}
-      >
-        <div data-reveal className="relative z-10 mx-auto max-w-[1120px] px-7 pt-16">
-          <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:gap-4">
-            <span className="font-mono text-[12px] tracking-[0.1em] text-halo">01</span>
-            <h2 className="flex-1 font-serif text-[clamp(26px,3.4vw,38px)] font-normal leading-[1.08] tracking-[-0.02em]">
-              One evening, two cities, one family
-            </h2>
-            <p className="max-w-[34ch] text-[14.5px] leading-[1.5] text-[#c9c6e4]">
-              Tari in London. Mum, Sarah and Grace in Harare. Scroll through the evening
-              KinOS was built for.
+      {/* everything after the merge stays in the night the story earned */}
+      <div style={{ background: `linear-gradient(180deg, ${NIGHT} 0%, #312E58 24%, ${NIGHT} 52%, #35335F 100%)` }}>
+        {/* ————— 5.10 evening brief ————— */}
+        <section className="relative overflow-hidden py-24">
+          <DuskField density={60} />
+          <div data-reveal className="relative mx-auto max-w-[620px] px-6">
+            <p className="text-center font-mono text-[11.5px] uppercase tracking-[0.2em] text-halo">
+              20:00 · the Daily Brief
+            </p>
+            <div
+              className="mt-6 rounded-[22px] border border-line-2 bg-paper-3 p-8 shadow-float md:p-10"
+              style={{
+                filter:
+                  "drop-shadow(0 40px 80px rgba(10,8,30,.55)) drop-shadow(0 0 60px rgba(169,167,224,.16))",
+              }}
+            >
+              <div className="mb-5 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">
+                <span>Tuesday evening · for Mum</span>
+                <OrbitMark size={16} className="text-dusk" />
+              </div>
+              <p className="font-serif text-[clamp(18px,2.2vw,21px)] font-light leading-[1.7] text-ink">
+                Mum is okay tonight. Her medication was taken, dinner was light, and Grace
+                uploaded the pharmacy receipt. Dizziness was mentioned once and is worth
+                checking tomorrow. Transport for the 10:00 clinic visit is now confirmed.
+                Nothing else needs attention tonight.
+              </p>
+              <p className="mt-6 border-t border-line pt-4 font-mono text-[11px] text-ink-faint">
+                read in thirty seconds · kept forever in the Family Record
+              </p>
+            </div>
+            <p className="mt-6 text-center text-[14.5px] leading-[1.6] text-[#c9c6e4]">
+              Like a letter from home — not a log, not a report.
             </p>
           </div>
-        </div>
-        <ScrollStory />
-      </section>
-      <SkyBridge to="day" />
+        </section>
 
-      {/* ————— daylight: how it stays calm ————— */}
-      <section className="relative bg-paper-2 py-20">
-        <AmbientLight variant={1} />
-        <div className="relative mx-auto max-w-[1120px] px-7">
-          <div data-reveal className="flex flex-col gap-2 md:flex-row md:items-baseline md:gap-4">
-            <span className="font-mono text-[12px] tracking-[0.1em] text-dusk-2">02</span>
-            <h2 className="flex-1 font-serif text-[clamp(26px,3.4vw,38px)] font-normal leading-[1.08] tracking-[-0.02em]">
-              Built calm. Built private.
-            </h2>
+        {/* ————— 5.11 family record ————— */}
+        <section className="relative py-20">
+          <SectionHead
+            n="01"
+            title="KinOS remembers what families forget"
+            sub="Tonight became a record the moment it happened. Years from now, it still answers."
+          />
+          <div className="mx-auto mt-12 grid max-w-[1060px] gap-12 px-6 md:grid-cols-[1fr_1.05fr] md:gap-16">
+            <div data-reveal className="flex flex-col">
+              {RECORD_ROWS.map(([time, text], i) => (
+                <div
+                  key={time}
+                  data-reveal
+                  data-reveal-delay={i * 70}
+                  className="flex items-baseline gap-4 border-t border-halo/15 py-3.5 first:border-t-0"
+                >
+                  <span className="w-[52px] flex-none font-mono text-[12px] text-halo">{time}</span>
+                  <span className="text-[14px] text-dusk-ink">{text}</span>
+                </div>
+              ))}
+            </div>
+            <div data-reveal data-reveal-delay={150}>
+              <div className="rounded-[18px] border border-halo/25 bg-white/5 px-5 py-4 backdrop-blur-sm">
+                <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-halo">
+                  Ask the Family Memory
+                </div>
+                <p className="mt-2 font-serif text-[19px] italic text-dusk-ink">
+                  “When did Mum first mention dizziness?”
+                </p>
+              </div>
+              <div className="mt-4 rounded-[18px] border border-line-2 bg-paper-3 px-5 py-4 shadow-float">
+                <p className="text-[14.5px] leading-[1.65] text-ink">
+                  Tonight at 19:04, in Grace&apos;s voice note. Marked{" "}
+                  <b className="font-semibold">worth a check</b>.
+                </p>
+                <p className="mt-2 font-mono text-[10.5px] text-ink-faint">
+                  answered from the Family Record · source kept
+                </p>
+              </div>
+              <p className="mt-6 max-w-[44ch] text-[14.5px] leading-[1.65] text-[#c9c6e4]">
+                Decisions, documents, voice notes, receipts — the group chat scrolls past
+                them. The Family Record never does.
+              </p>
+            </div>
           </div>
-          <div className="mt-12 flex flex-col">
-            {PRINCIPLES.map((p, i) => (
+        </section>
+
+        {/* ————— 5.12 consent rings ————— */}
+        <section className="relative py-20">
+          <SectionHead
+            n="02"
+            title="Privacy you can see"
+            sub="Not a settings page. Rings around the person — and the family decides who stands on which one."
+          />
+          <div data-reveal className="mt-12 px-6">
+            <ConsentRings />
+          </div>
+        </section>
+
+        {/* ————— 5.13 product surfaces ————— */}
+        <section className="relative py-20">
+          <SectionHead
+            n="03"
+            title="You already met the product"
+            sub="Everything in the story is a surface of KinOS. Nothing was a mock-up."
+          />
+          <div className="mx-auto mt-10 max-w-[1060px] px-6">
+            {SURFACES.map(([saw, name, line], i) => (
               <div
-                key={p.n}
+                key={name}
                 data-reveal
-                data-reveal-delay={i * 110}
-                className="grid gap-4 border-t border-line py-10 first:border-t-0 first:pt-0 md:grid-cols-[80px_1fr_1.1fr] md:gap-8"
+                data-reveal-delay={(i % 5) * 60}
+                className="grid gap-1.5 border-t border-halo/15 py-5 first:border-t-0 md:grid-cols-[1fr_180px_1.2fr] md:items-baseline md:gap-8"
               >
-                <span className="font-mono text-[12px] tracking-[0.1em] text-ink-faint">{p.n}</span>
-                <h3 className="font-serif text-[clamp(20px,2.4vw,27px)] font-normal leading-[1.2] tracking-[-0.01em]">
-                  {p.title}
-                </h3>
-                <p className="text-[15px] leading-[1.65] text-ink-soft">{p.body}</p>
+                <span className="font-mono text-[11px] tracking-[0.06em] text-halo">{saw} →</span>
+                <span className="font-serif text-[19px] text-white">{name}</span>
+                <span className="text-[13.5px] leading-[1.6] text-[#c9c6e4]">{line}</span>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ————— afternoon: for each of you ————— */}
-      <section id="families" className="relative bg-paper py-20">
-        <AmbientLight variant={0} />
-        <div className="relative mx-auto max-w-[1120px] px-7">
-          <div data-reveal className="flex flex-col gap-2 md:flex-row md:items-baseline md:gap-4">
-            <span className="font-mono text-[12px] tracking-[0.1em] text-dusk-2">03</span>
-            <h2 className="flex-1 font-serif text-[clamp(26px,3.4vw,38px)] font-normal leading-[1.08] tracking-[-0.02em]">
-              Every family runs a hidden operation
-            </h2>
-            <p className="max-w-[34ch] text-[14.5px] leading-[1.5] text-ink-soft">
-              Today it lives in group chats, phone calls, memory and scattered receipts.
-              KinOS gives each of you a home in it.
-            </p>
-          </div>
-
-          <div className="mt-14 flex flex-col gap-16">
-            {PERSONAS.map((p, i) => (
-              <div
-                key={p.n}
-                data-reveal
-                data-reveal-delay={i * 80}
-                className={`grid items-center gap-10 md:grid-cols-2 ${i % 2 === 1 ? "md:[&>*:first-child]:order-2" : ""}`}
-              >
-                <div>
-                  <div className="font-mono text-[11.5px] uppercase tracking-[0.18em] text-dusk-2">
-                    {p.who}
-                  </div>
-                  <h3 className="mt-3 max-w-[24ch] font-serif text-[clamp(22px,2.8vw,30px)] font-light leading-[1.2] tracking-[-0.01em]">
-                    {p.line}
-                  </h3>
-                  <p className="mt-4 max-w-[52ch] text-[15px] leading-[1.65] text-ink-soft">{p.body}</p>
-                </div>
-
-                {/* their corner of KinOS — a small lit window, tilted like a photo */}
-                <div className="relative">
-                  <div
-                    aria-hidden
-                    className="orb orb-a"
-                    style={{
-                      width: 300,
-                      height: 300,
-                      top: "-10%",
-                      [i % 2 === 1 ? "left" : "right"]: "5%",
-                      background: "radial-gradient(circle, rgba(169,167,224,.2), transparent 65%)",
-                    }}
-                  />
-                  <div
-                    className="lift relative mx-auto w-full max-w-[350px] rounded-[22px] border border-line-2 bg-paper-3 p-5 shadow-float"
-                    style={{ transform: `rotate(${i % 2 === 1 ? 1.4 : -1.4}deg)` }}
-                  >
-                    <div className="mb-3 flex items-center justify-between font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-faint">
-                      <span>their KinOS</span>
-                      <OrbitMark size={15} className="text-dusk" />
-                    </div>
-                    <div className="flex flex-col">
-                      {p.feed.map((f) => (
-                        <div
-                          key={f.text}
-                          className="flex items-center justify-between gap-3 border-t border-line py-3 first:border-t-0 first:pt-1 last:pb-1"
-                        >
-                          <span className="flex items-center gap-2.5 text-[13.5px] text-ink">
-                            <span
-                              aria-hidden
-                              className="h-[7px] w-[7px] flex-none rounded-full"
-                              style={{ background: DOT_COLOR[f.dot] }}
-                            />
-                            {f.text}
-                          </span>
-                          <span className="flex-none font-mono text-[10px] text-ink-faint">{f.meta}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ————— golden hour: voices ————— */}
-      <section className="relative bg-paper-2 py-20">
-        <AmbientLight variant={1} />
-        <div className="relative mx-auto max-w-[1120px] px-7">
-          <div data-reveal className="flex flex-col gap-2 md:flex-row md:items-baseline md:gap-4">
-            <span className="font-mono text-[12px] tracking-[0.1em] text-dusk-2">04</span>
-            <h2 className="flex-1 font-serif text-[clamp(26px,3.4vw,38px)] font-normal leading-[1.08] tracking-[-0.02em]">
-              The Moyo family, in their own words
-            </h2>
-            <p className="max-w-[34ch] text-[14.5px] leading-[1.5] text-ink-soft">
-              One orbit, five people, five different kinds of relief. The deck deals
-              itself — or tap it.
-            </p>
-          </div>
-          <div data-reveal className="mt-14 pb-10">
+        {/* ————— voices ————— */}
+        <section className="relative py-20">
+          <SectionHead
+            n="04"
+            title="The Moyo family, in their own words"
+            sub="One orbit, five people, five kinds of relief. The deck deals itself — or tap it."
+          />
+          <div data-reveal className="mt-14 px-6 pb-8">
             <VoicesDeck />
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ————— early evening: belonging ————— */}
-      <section className="relative bg-paper pb-24 pt-20">
-        <AmbientLight variant={1} />
-        <div className="relative">
-          <div data-reveal className="mx-auto max-w-[1120px] px-7 text-center">
-            <Eyebrow className="mb-5">The feeling we&apos;re building</Eyebrow>
-            <h2 className="mx-auto max-w-[22ch] font-serif text-[clamp(26px,3.6vw,40px)] font-light leading-[1.2] tracking-[-0.01em]">
-              Somewhere right now, a family just exhaled.
-            </h2>
-            <p className="mx-auto mt-5 max-w-[58ch] text-[15.5px] leading-[1.7] text-ink-soft">
-              Not because an app buzzed — because it didn&apos;t need to. KinOS is for the
-              space between check-ins: the quiet confidence that someone you love is okay,
-              that someone owns tomorrow, and that nothing important will be forgotten.
-              Open it, and you&apos;re not opening software. You&apos;re stepping into the
-              room where your family keeps what matters.
-            </p>
+        {/* ————— 5.14 pricing as orbit rings ————— */}
+        <section className="relative py-20">
+          <SectionHead
+            n="05"
+            title="Pricing that grows like a family"
+            sub="Every plan is a wider orbit around the same person. Start free — one Orbit, forever."
+          />
+          <div data-reveal className="mt-12 px-6">
+            <OrbitPricing />
           </div>
-          {/* the family's day, drifting by */}
-          <div data-reveal className="mt-12 flex flex-col gap-3">
-            <MomentLane items={MOMENTS_A} />
-            <MomentLane items={MOMENTS_B} reverse />
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ————— dusk: the questions families actually ask ————— */}
-      <section className="relative bg-paper-2 py-20">
-        <AmbientLight variant={0} />
-        <div className="relative mx-auto grid max-w-[1120px] gap-10 px-7 md:grid-cols-[1fr_1.6fr] md:gap-16">
-          <div data-reveal>
-            <span className="font-mono text-[12px] tracking-[0.1em] text-dusk-2">05</span>
-            <h2 className="mt-2 max-w-[16ch] font-serif text-[clamp(26px,3.4vw,38px)] font-normal leading-[1.12] tracking-[-0.02em]">
-              The questions families actually ask
-            </h2>
-            <p className="mt-4 max-w-[36ch] text-[14.5px] leading-[1.6] text-ink-soft">
-              Asked by real families, answered without fine print. Anything else —
-              the privacy page says it all in plain words.
-            </p>
-            <Link
-              href="/privacy"
-              className="mt-5 inline-block font-mono text-[12.5px] text-dusk-2 underline decoration-line-2 underline-offset-4 hover:text-dusk"
-            >
-              Read the privacy promise →
-            </Link>
-          </div>
-          <div className="flex flex-col gap-3.5">
+        {/* ————— questions ————— */}
+        <section className="relative py-20">
+          <SectionHead n="06" title="The questions families actually ask" />
+          <div className="mx-auto mt-10 flex max-w-[760px] flex-col gap-3.5 px-6">
             {FAQS.map((f, i) => (
               <details
                 key={f.q}
                 data-reveal
-                data-reveal-delay={i * 70}
-                className="group rounded-[18px] border border-line-2 bg-paper-3 px-6 py-5 shadow-card transition-shadow hover:shadow-float"
+                data-reveal-delay={i * 60}
+                className="group rounded-[18px] border border-line-2 bg-paper-3 px-6 py-5 shadow-card"
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-serif text-[17.5px] text-ink [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-serif text-[17px] text-ink [&::-webkit-details-marker]:hidden">
                   {f.q}
                   <span
                     aria-hidden
@@ -600,61 +343,41 @@ export default function LandingPage() {
                     +
                   </span>
                 </summary>
-                <p className="mt-3 max-w-[70ch] text-[14.5px] leading-[1.7] text-ink-soft">{f.a}</p>
+                <p className="mt-3 max-w-[64ch] text-[14px] leading-[1.7] text-ink-soft">{f.a}</p>
               </details>
             ))}
+            <p className="mt-2 text-center font-mono text-[12px] text-halo">
+              Anything else — <Link href="/privacy" className="text-dusk-ink underline decoration-halo/40 underline-offset-4">the privacy promise</Link> says it in plain words.
+            </p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ————— night falls again: the invitation ————— */}
-      <SkyBridge to="night" />
-      <section
-        className="relative overflow-hidden pb-24 pt-16 text-dusk-ink"
-        style={{ background: `linear-gradient(180deg, ${NIGHT}, #35335f)` }}
-      >
-        <div aria-hidden className="aurora aurora-a z-0" />
-        <DuskField density={70} />
-        <div data-reveal className="relative z-10 mx-auto max-w-[1120px] px-7 text-center">
-          <OrbitMark size={56} className="mx-auto text-halo" />
-          <h2 className="mx-auto mt-6 max-w-[22ch] font-serif text-[clamp(26px,3.6vw,40px)] font-light leading-[1.2] tracking-[-0.01em]">
-            Know what is happening. Know who is responsible. Never forget what matters.
-          </h2>
-
-          {/* three quiet steps from here to the first brief */}
-          <div className="mx-auto mt-10 grid max-w-[760px] gap-6 text-left sm:grid-cols-3">
-            {[
-              { n: "01", t: "Open your family space", d: "Two minutes. No card, no setup call." },
-              { n: "02", t: "Invite the family", d: "Set consent together — everyone sees their part." },
-              { n: "03", t: "By evening, it's working", d: "The first brief arrives like a letter from home." },
-            ].map((s) => (
-              <div key={s.n} className="border-t border-halo/25 pt-4">
-                <div className="font-mono text-[11px] tracking-[0.14em] text-halo">{s.n}</div>
-                <div className="mt-1.5 font-serif text-[17px] text-white">{s.t}</div>
-                <p className="mt-1 text-[13px] leading-[1.55] text-[#c9c6e4]">{s.d}</p>
-              </div>
-            ))}
+        {/* ————— 5.15 calm night close ————— */}
+        <section className="relative overflow-hidden pb-28 pt-16">
+          <DuskField density={70} />
+          <div data-reveal className="relative mx-auto max-w-[860px] px-6 text-center">
+            <div className="flex justify-center">
+              <OrbitSystem size={340} satellites={FAMILY_SATELLITES} />
+            </div>
+            <div className="mx-auto mt-10 flex max-w-[30ch] flex-col gap-1.5 font-serif text-[clamp(21px,2.8vw,30px)] font-light leading-[1.35] text-dusk-ink">
+              <span>Tonight, nothing is lost.</span>
+              <span className="text-[0.72em] text-[#c9c6e4]">The check-in was recorded.</span>
+              <span className="text-[0.72em] text-[#c9c6e4]">The receipt was filed.</span>
+              <span className="text-[0.72em] text-[#c9c6e4]">The duty was handled.</span>
+              <span className="mt-1 text-white">The family knows.</span>
+            </div>
+            <div className="mt-10">
+              <Link
+                href="/sign-in"
+                className="lift rounded-pill bg-white px-7 py-3.5 text-[14.5px] font-semibold text-dusk no-underline"
+              >
+                Start your family space
+              </Link>
+            </div>
+            <p className="mt-5 font-mono text-[12px] text-halo">Free for one Orbit · no card needed</p>
           </div>
-
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Link
-              href="/sign-in"
-              className="lift rounded-pill bg-white px-7 py-3.5 text-[14.5px] font-semibold text-dusk no-underline"
-            >
-              Start your family space
-            </Link>
-            <Link
-              href="/pricing"
-              className="lift rounded-pill border border-halo/40 px-7 py-3.5 text-[14.5px] font-medium text-dusk-ink no-underline hover:border-halo"
-            >
-              See pricing
-            </Link>
-          </div>
-          <p className="mt-5 font-mono text-[12px] text-halo">
-            Free for one Orbit · no card needed
-          </p>
-        </div>
-      </section>
+        </section>
+      </div>
     </>
   );
 }
