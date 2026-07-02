@@ -114,6 +114,25 @@ export async function inviteMemberAction(formData: FormData): Promise<ActionResu
   if (!parsed.success) return { ok: false, message: "Check the email address and role." };
   const emailLabel = parsed.data.email ?? "shared link";
 
+  // The plan's people cap counts seats already taken plus doors already open.
+  const planId = (ctx.workspace.plan_id in PLANS ? ctx.workspace.plan_id : "free") as PlanId;
+  const seats = await withUser(ctx.userId, async (db) => {
+    const res = await db.query(
+      `select
+         (select count(*)::int from family_member where workspace_id = $1) as members,
+         (select count(*)::int from invitation
+           where workspace_id = $1 and status = 'pending' and expires_at > now()) as pending`,
+      [ctx.workspace.id],
+    );
+    return res.rows[0] as { members: number; pending: number };
+  });
+  if (seats.members + seats.pending >= PLANS[planId].maxMembers) {
+    return {
+      ok: false,
+      message: `The ${PLANS[planId].name} plan holds ${PLANS[planId].maxMembers} people. Upgrade to invite more of the family.`,
+    };
+  }
+
   const token = await withUser(ctx.userId, async (db) => {
     const res = await db.query(
       `insert into invitation (workspace_id, email, role, scopes, invited_by)

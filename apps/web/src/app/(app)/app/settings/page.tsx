@@ -2,6 +2,7 @@ import {
   grantConsentForm,
   inviteMemberForm,
   revokeConsentForm,
+  upgradePlanForm,
 } from "@/lib/actions/forms";
 import { PLANS, type PlanId } from "@kinos/config";
 import { Eyebrow, Panel, Pill } from "@kinos/ui";
@@ -29,7 +30,12 @@ const ROLE_LABEL: Record<string, string> = {
   emergency: "Emergency contact",
 };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ plan?: string }>;
+}) {
+  const planResult = (await searchParams)?.plan;
   const ctx = await requireFamilyContext();
   const isAdmin = ctx.member.role === "admin";
   const [members, invitations, grants, subjects, accessLog] = await Promise.all([
@@ -52,6 +58,63 @@ export default async function SettingsPage() {
           {plan.name} plan · you are {ROLE_LABEL[ctx.member.role]?.toLowerCase()}
         </p>
       </div>
+
+      {planResult && (
+        <div
+          className={`room-enter rounded-card border px-4 py-3 text-[13px] ${
+            planResult === "upgraded"
+              ? "border-calm-text/25 bg-calm-soft text-calm-text"
+              : "border-line bg-paper-2 text-ink-soft"
+          }`}
+        >
+          {planResult === "upgraded"
+            ? "Payment received. Your plan switches over the moment Stripe confirms it — usually within a minute."
+            : "No changes made — the checkout was closed."}
+        </div>
+      )}
+
+      {isAdmin && (
+        <Panel className="flex flex-col gap-3">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+            Plan
+          </h2>
+          <p className="text-[13.5px] leading-relaxed text-ink-soft">
+            {plan.name} — {plan.audience.toLowerCase()}. Holds {plan.maxOrbits} Orbit
+            {plan.maxOrbits === 1 ? "" : "s"} and {plan.maxMembers} people.
+          </p>
+          <details>
+            <summary className="cursor-pointer text-[12.5px] font-medium text-dusk-2">
+              Change plan
+            </summary>
+            <div className="mt-3 flex flex-col gap-2">
+              {(["family_core", "family_plus", "diaspora_care", "family_premium"] as const)
+                .filter((id) => id !== planId)
+                .map((id) => (
+                  <form
+                    key={id}
+                    action={upgradePlanForm}
+                    className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-2 first:border-t-0 first:pt-0"
+                  >
+                    <input type="hidden" name="planId" value={id} />
+                    <span className="text-[13.5px]">
+                      {PLANS[id].name}
+                      <span className="ml-2 font-mono text-[11px] text-ink-faint">
+                        ${(PLANS[id].priceCentsMonthly / 100).toFixed(0)}/month · {PLANS[id].audience.toLowerCase()}
+                      </span>
+                    </span>
+                    <button className="rounded-pill bg-dusk px-3.5 py-1.5 text-[12.5px] font-medium text-white">
+                      Upgrade
+                    </button>
+                  </form>
+                ))}
+            </div>
+            <p className="mt-2 text-[11.5px] text-ink-faint">
+              Card payments are held by Stripe. The plan switches when payment settles;
+              downgrading to Free happens by cancelling in Stripe.
+            </p>
+          </details>
+        </Panel>
+      )}
 
       {/* notifications */}
       <Panel className="flex flex-col gap-3">
