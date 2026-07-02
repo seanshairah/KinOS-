@@ -255,7 +255,7 @@ export default function LandingPage() {
           style={{ background: `linear-gradient(180deg, transparent, ${NIGHT})` }}
         />
 
-        <div className="relative z-10 mx-auto grid max-w-[1120px] items-center gap-10 px-6 pb-8 pt-14 md:grid-cols-[1.02fr_.98fr] md:pt-20">
+        <div className="relative z-10 mx-auto grid max-w-[1120px] items-center gap-10 px-6 pb-8 pt-28 md:grid-cols-[1.02fr_.98fr] md:pt-32">
           <div>
             <Eyebrow className="text-halo">Private family operating system</Eyebrow>
             <h1 className="mt-5 font-serif text-[clamp(38px,6.2vw,72px)] font-normal leading-[1.02] tracking-[-0.02em]">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { OrbitMark, Wordmark } from "@kinos/ui";
 import { RevealOnScroll } from "@/components/reveal";
+import { SiteNav } from "@/components/site-nav";
 
 const SAFETY_LINE =
   "KinOS is a family coordination and life-awareness platform. It is not a medical device, diagnosis tool, emergency service, or replacement for healthcare professionals. If something seems urgent, contact local emergency or medical services.";
@@ -9,34 +10,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <>
       <RevealOnScroll />
-      <nav className="sticky top-0 z-50 border-b border-line/40 bg-paper/10 backdrop-blur-md">
-        <div className="mx-auto flex h-[62px] max-w-[1120px] items-center justify-between px-7">
-          <Link href="/" className="flex items-center gap-3 no-underline">
-            <OrbitMark size={24} className="text-dusk" />
-            <Wordmark size={18} />
-          </Link>
-          <div className="hidden gap-6 text-[13.5px] text-ink-soft md:flex">
-            <Link href="/#product" className="no-underline hover:text-dusk-2">Product</Link>
-            <Link href="/#families" className="no-underline hover:text-dusk-2">Families</Link>
-            <Link href="/pricing" className="no-underline hover:text-dusk-2">Pricing</Link>
-            <Link href="/privacy" className="no-underline hover:text-dusk-2">Privacy</Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/sign-in"
-              className="rounded-pill border border-line bg-paper-3 px-4 py-2 text-[13.5px] font-medium text-ink no-underline hover:border-line-2"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/sign-in"
-              className="hidden rounded-pill bg-dusk px-4 py-2 text-[13.5px] font-medium text-white no-underline hover:bg-dusk-2 sm:block"
-            >
-              Start your family space
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <SiteNav />
 
       <main>{children}</main>
 
