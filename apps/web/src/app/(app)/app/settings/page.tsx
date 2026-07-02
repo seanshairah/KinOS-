@@ -3,6 +3,7 @@ import {
   inviteMemberForm,
   deleteWorkspaceForm,
   revokeConsentForm,
+  switchWorkspaceForm,
   upgradePlanForm,
 } from "@/lib/actions/forms";
 import { PLANS, type PlanId } from "@kinos/config";
@@ -10,7 +11,7 @@ import { Eyebrow, Panel, Pill } from "@kinos/ui";
 
 import { EnableNotifications } from "@/components/enable-notifications";
 import { InviteLink } from "@/components/invite-link";
-import { requireFamilyContext } from "@/lib/data/context";
+import { listMemberships, requireFamilyContext } from "@/lib/data/context";
 import {
   listAccessLog,
   listConsentGrants,
@@ -39,12 +40,13 @@ export default async function SettingsPage({
   const planResult = (await searchParams)?.plan;
   const ctx = await requireFamilyContext();
   const isAdmin = ctx.member.role === "admin";
-  const [members, invitations, grants, subjects, accessLog] = await Promise.all([
+  const [members, invitations, grants, subjects, accessLog, memberships] = await Promise.all([
     listMembers(ctx.userId),
     isAdmin ? listInvitations(ctx.userId) : Promise.resolve([]),
     listConsentGrants(ctx.userId),
     listSubjects(ctx.userId),
     isAdmin ? listAccessLog(ctx.userId) : Promise.resolve([]),
+    listMemberships(ctx.userId),
   ]);
 
   const planId = (ctx.workspace.plan_id in PLANS ? ctx.workspace.plan_id : "free") as PlanId;
@@ -59,6 +61,36 @@ export default async function SettingsPage({
           {plan.name} plan · you are {ROLE_LABEL[ctx.member.role]?.toLowerCase()}
         </p>
       </div>
+
+      {memberships.length > 1 && (
+        <Panel className="flex flex-col gap-2">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+            Your family spaces
+          </h2>
+          {memberships.map((m) => (
+            <form
+              key={m.workspace_id}
+              action={switchWorkspaceForm}
+              className="flex items-center justify-between gap-3 border-t border-line pt-2 first:border-t-0 first:pt-0"
+            >
+              <input type="hidden" name="workspaceId" value={m.workspace_id} />
+              <span className="text-[13.5px]">
+                {m.workspace_name}
+                <span className="ml-2 font-mono text-[11px] text-ink-faint">{m.role}</span>
+              </span>
+              {m.workspace_id === ctx.workspace.id ? (
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-calm-text">
+                  here now
+                </span>
+              ) : (
+                <button className="rounded-pill border border-line bg-paper-2 px-3.5 py-1.5 text-[12.5px] font-medium text-ink hover:border-halo/60">
+                  Switch
+                </button>
+              )}
+            </form>
+          ))}
+        </Panel>
+      )}
 
       {planResult && (
         <div

@@ -23,6 +23,7 @@ import { upgradePlanAction } from "./billing";
 import {
   createOrbitAction,
   deleteWorkspaceAction,
+  switchWorkspaceAction,
   grantConsentAction,
   inviteMemberAction,
   raiseEmergencyAction,
@@ -88,4 +89,7 @@ export async function upgradePlanForm(fd: FormData): Promise<void> {
 }
 export async function deleteWorkspaceForm(fd: FormData): Promise<void> {
   await deleteWorkspaceAction(fd);
+}
+export async function switchWorkspaceForm(fd: FormData): Promise<void> {
+  await switchWorkspaceAction(fd);
 }
