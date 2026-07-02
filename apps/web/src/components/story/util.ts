@@ -20,15 +20,48 @@ export function lerpColor(from: string, to: string, t: number): string {
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
-/** Sample a gradient of [stop, color] pairs at progress p. */
-export function skyAt(stops: readonly (readonly [number, string])[], p: number): string {
+function sampleRgb(
+  stops: readonly (readonly [number, string])[],
+  p: number,
+): [number, number, number] {
   const v = clamp01(p);
   for (let i = 1; i < stops.length; i++) {
     const [b, cb] = stops[i]!;
     const [a, ca] = stops[i - 1]!;
-    if (v <= b) return lerpColor(ca, cb, (v - a) / (b - a));
+    if (v <= b) {
+      const t = clamp01((v - a) / (b - a));
+      const from = hexToRgb(ca);
+      const to = hexToRgb(cb);
+      return [0, 1, 2].map((j) => Math.round(from[j]! + (to[j]! - from[j]!) * t)) as [
+        number,
+        number,
+        number,
+      ];
+    }
   }
-  return stops[stops.length - 1]![1];
+  return hexToRgb(stops[stops.length - 1]![1]);
+}
+
+/** Sample a gradient of [stop, color] pairs at progress p. */
+export function skyAt(stops: readonly (readonly [number, string])[], p: number): string {
+  const [r, g, b] = sampleRgb(stops, p);
+  return `rgb(${r},${g},${b})`;
+}
+
+/** Sample the same gradient but with an alpha — for feathered glows. */
+export function skyRgba(
+  stops: readonly (readonly [number, string])[],
+  p: number,
+  alpha: number,
+): string {
+  const [r, g, b] = sampleRgb(stops, p);
+  return `rgba(${r},${g},${b},${clamp01(alpha).toFixed(3)})`;
+}
+
+/** hex + alpha → rgba() string, for composing glow gradients. */
+export function rgba(hex: string, alpha: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${clamp01(alpha).toFixed(3)})`;
 }
 
 /** "17:42" → "20:00" as the evening passes. */

@@ -11,7 +11,7 @@ import {
   MoneyPotMoment,
   VoiceNoteTransform,
 } from "./moments";
-import { clockAt, ease, skyAt, span } from "./util";
+import { clockAt, ease, rgba, skyAt, skyRgba, span } from "./util";
 
 /**
  * EveningStory — "One Evening in One Orbit".
@@ -24,11 +24,37 @@ import { clockAt, ease, skyAt, span } from "./util";
  * Reduced motion reads the same evening as calm stacked moments.
  */
 
-/* Two skies, one clock. Top and bottom stops per city, sampled by progress. */
-const LONDON_TOP = [[0, "#93A9CC"], [0.3, "#7B80B0"], [0.55, "#5D5A94"], [0.78, "#3B3866"], [0.88, "#2C2A4F"], [1, "#2C2A4F"]] as const;
-const LONDON_BOT = [[0, "#6F87AF"], [0.3, "#666DA3"], [0.55, "#4A4780"], [0.78, "#322F58"], [0.88, "#262449"], [1, "#262449"]] as const;
-const HARARE_TOP = [[0, "#E5B078"], [0.3, "#CE8A5D"], [0.55, "#9A6D8C"], [0.78, "#443E6E"], [0.88, "#2C2A4F"], [1, "#2C2A4F"]] as const;
-const HARARE_BOT = [[0, "#C98A54"], [0.3, "#A96C63"], [0.55, "#6E5480"], [0.78, "#352F5C"], [0.88, "#262449"], [1, "#262449"]] as const;
+/*
+ * One sky, two lights. There is no split screen and no boundary: a single
+ * shared gradient carries the hour, while a cool London glow (left) and a
+ * warm Harare glow (right) feather into each other across the middle. A
+ * low sun sets on the Harare side, a faint moon rises over London, and as
+ * night falls both glows dissolve into the same dusk — the merge is the
+ * two lights literally becoming one.
+ */
+const BASE_TOP = [[0, "#A9B6D1"], [0.3, "#8E87B4"], [0.55, "#5F5B96"], [0.78, "#3A3766"], [0.88, "#2C2A4F"], [1, "#2C2A4F"]] as const;
+const BASE_BOT = [[0, "#D8C2A9"], [0.3, "#B18FA3"], [0.55, "#6E5F91"], [0.78, "#332F59"], [0.88, "#262449"], [1, "#262449"]] as const;
+const LONDON_LIGHT = [[0, "#7FA3D8"], [0.4, "#5E6AAE"], [0.75, "#4A4886"], [1, "#4A4886"]] as const;
+const HARARE_LIGHT = [[0, "#F2B26B"], [0.4, "#DE8F63"], [0.75, "#8A5F86"], [1, "#8A5F86"]] as const;
+
+/** The whole sky as one layered background — no seams, only light. */
+function skyBackground(p: number): string {
+  const glowFade = 1 - ease(span(p, 0.5, 0.88));
+  const sunSet = ease(span(p, 0.05, 0.45));
+  const moonRise = ease(span(p, 0.45, 0.8));
+  const layers = [
+    // the moon, rising over London as the evening deepens
+    `radial-gradient(5% 8% at 13% ${58 - moonRise * 32}%, ${rgba("#EDEBF6", 0.34 * moonRise)}, transparent 100%)`,
+    // the sun, setting behind Harare
+    `radial-gradient(16% 22% at 84% ${34 + sunSet * 52}%, ${rgba("#FFDCA8", 0.5 * (1 - sunSet))}, transparent 100%)`,
+    // two cities as pools of light, feathering through the middle
+    `radial-gradient(95% 130% at 8% 34%, ${skyRgba(LONDON_LIGHT, p, 0.5 * glowFade)}, transparent 62%)`,
+    `radial-gradient(95% 130% at 92% 36%, ${skyRgba(HARARE_LIGHT, p, 0.55 * glowFade)}, transparent 62%)`,
+    // the shared hour
+    `linear-gradient(180deg, ${skyAt(BASE_TOP, p)}, ${skyAt(BASE_BOT, p)})`,
+  ];
+  return layers.join(",");
+}
 
 /* The acts of the evening, as fractions of the pinned scroll. */
 const ACT = {
@@ -111,7 +137,10 @@ export function EveningStory() {
   if (reduced) {
     // The same evening, told as calm stacked moments under one night sky.
     return (
-      <div className="flex flex-col gap-16 px-6 py-16">
+      <div
+        className="flex flex-col gap-16 px-6 py-16"
+        style={{ background: `linear-gradient(180deg, ${skyAt(BASE_TOP, 1)}, ${skyAt(BASE_BOT, 1)})` }}
+      >
         <p className="mx-auto max-w-[30ch] text-center font-serif text-[26px] font-light leading-[1.3] text-dusk-ink">
           Different places. Different times. One family responsibility.
         </p>
@@ -134,42 +163,39 @@ export function EveningStory() {
   }
 
   const nightfall = ease(span(p, 0.5, 0.88));
-  const seam = 1 - ease(span(p, 0.84, 0.93));
   const mergeT = ease(span(p, 0.85, 0.95));
   const closeT = ease(span(p, 0.955, 1));
 
   return (
     <div ref={containerRef} style={{ height: "1250vh" }}>
       <div className="sticky top-0 h-screen overflow-hidden">
-        {/* two skies becoming one */}
-        <div
-          aria-hidden
-          className="absolute inset-y-0 left-0 w-1/2"
-          style={{
-            background: `linear-gradient(180deg, ${skyAt(LONDON_TOP, p)}, ${skyAt(LONDON_BOT, p)})`,
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-y-0 right-0 w-1/2"
-          style={{
-            background: `linear-gradient(180deg, ${skyAt(HARARE_TOP, p)}, ${skyAt(HARARE_BOT, p)})`,
-          }}
-        />
-        {/* the distance between them, dissolving at the merge */}
-        <div
-          aria-hidden
-          className="absolute inset-y-0 left-1/2 w-[140px] -translate-x-1/2"
-          style={{
-            opacity: seam * 0.55,
-            background:
-              "linear-gradient(90deg, transparent, rgba(20,17,45,.5), transparent)",
-            filter: "blur(18px)",
-          }}
-        />
+        {/* one sky, two lights, no boundary */}
+        <div aria-hidden className="absolute inset-0" style={{ background: skyBackground(p) }} />
         {/* stars arrive with the night */}
         <div aria-hidden className="absolute inset-0" style={{ opacity: nightfall }}>
           <DuskField density={90} />
+        </div>
+
+        {/* where the evening stands — one dot per act */}
+        <div className="absolute left-6 top-1/2 z-20 hidden h-[46vh] w-px -translate-y-1/2 bg-white/15 md:block lg:left-10">
+          <div
+            className="w-px bg-white/70 transition-[height] duration-150"
+            style={{ height: `${p * 100}%` }}
+          />
+          {Object.values(ACT).map(([start], i) => {
+            const lit = p >= start + 0.01;
+            return (
+              <span
+                key={i}
+                className="absolute -left-[3px] h-[7px] w-[7px] rounded-full transition-all duration-500"
+                style={{
+                  top: `${start * 100}%`,
+                  background: lit ? "rgba(255,255,255,.9)" : "rgba(255,255,255,.25)",
+                  boxShadow: lit ? "0 0 9px rgba(237,235,246,.8)" : "none",
+                }}
+              />
+            );
+          })}
         </div>
 
         {/* two clocks, one evening */}

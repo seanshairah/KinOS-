@@ -167,11 +167,19 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ————— rewind: one dusk tears into two afternoons ————— */}
-      <div aria-hidden className="relative grid h-44 grid-cols-2 md:h-56">
-        <div style={{ background: `linear-gradient(180deg, ${NIGHT}, ${LONDON_DAY})` }} />
-        <div style={{ background: `linear-gradient(180deg, ${NIGHT}, ${HARARE_DAY})` }} />
-        <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center font-mono text-[11.5px] uppercase tracking-[0.22em] text-white/80">
+      {/* ————— rewind: dusk brightens back into this afternoon,
+                the two cities already glowing at its edges ————— */}
+      <div
+        aria-hidden
+        className="relative h-48 md:h-60"
+        style={{
+          background:
+            `radial-gradient(85% 95% at 8% 100%, ${LONDON_DAY}66, transparent 62%),` +
+            `radial-gradient(85% 95% at 92% 100%, ${HARARE_DAY}80, transparent 62%),` +
+            `linear-gradient(180deg, ${NIGHT} 0%, #4E4B7E 48%, #A9B6D1 100%)`,
+        }}
+      >
+        <p className="absolute inset-x-0 top-[42%] text-center font-mono text-[11.5px] uppercase tracking-[0.22em] text-white/80">
           rewind to this afternoon
         </p>
       </div>
