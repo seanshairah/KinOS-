@@ -270,3 +270,25 @@ export async function raiseEmergencyAction(formData: FormData): Promise<ActionRe
   revalidatePath("/app/emergency");
   return { ok: true, id: alertId };
 }
+
+const deleteSchema = z.object({ confirmName: z.string().min(1) });
+
+/**
+ * Delete the family space — the exit the Privacy Policy promises. The
+ * database RPC re-checks that the caller is an admin; the typed name is
+ * a human-level brake, not the security boundary.
+ */
+export async function deleteWorkspaceAction(formData: FormData): Promise<ActionResult> {
+  const ctx = await requireFamilyContext();
+  if (ctx.member.role !== "admin") {
+    return { ok: false, message: "Only an admin can delete the family space." };
+  }
+  const parsed = deleteSchema.safeParse({ confirmName: formData.get("confirmName") });
+  if (!parsed.success || parsed.data.confirmName.trim() !== ctx.workspace.name) {
+    return { ok: false, message: "Type the family space's exact name to confirm." };
+  }
+  await withUser(ctx.userId, (db) =>
+    db.query(`select delete_workspace($1)`, [ctx.workspace.id]),
+  );
+  redirect("/app/onboarding");
+}
