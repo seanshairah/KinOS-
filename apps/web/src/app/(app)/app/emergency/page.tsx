@@ -38,7 +38,7 @@ export default async function EmergencyPage({
         </h1>
       </div>
 
-      <div className="rounded-card border border-urgent/30 bg-[#fdf1ee] p-4 text-[13.5px] leading-relaxed text-ink">
+      <div className="rounded-card border border-urgent/30 bg-urgent-bg p-4 text-[13.5px] leading-relaxed text-ink">
         If something is urgent right now, contact local emergency or medical services first.
         KinOS reaches your family — it is not an emergency service.
       </div>

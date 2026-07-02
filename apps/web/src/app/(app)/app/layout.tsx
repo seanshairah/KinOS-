@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 import { OrbitMark, Wordmark } from "@kinos/ui";
 import { isDatabaseConfigured } from "@kinos/db";
 import { AppNav } from "@/components/app-nav";
+import { DuskField } from "@/components/dusk-field";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { RegisterServiceWorker } from "@/components/register-sw";
 import { currentUserId, signOut } from "@/lib/auth";
@@ -33,13 +34,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ];
 
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="theme-dusk relative min-h-screen text-ink">
+      {/* the same night the story ends in — the family space lives there */}
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(110% 70% at 82% -10%, rgba(140,138,214,.28), transparent 55%)," +
+            "radial-gradient(80% 60% at 6% 110%, rgba(217,138,61,.08), transparent 60%)," +
+            "linear-gradient(180deg, #34315c 0%, #2c2a4f 46%, #262449 100%)",
+        }}
+      >
+        <DuskField density={64} />
+      </div>
+
       <AutoRefresh seconds={45} />
       <RegisterServiceWorker />
-      <header className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-line bg-[#2c2a4f]/70 backdrop-blur-md">
         <div className="mx-auto flex h-[58px] max-w-[1200px] items-center justify-between px-5">
-          <Link href="/app" className="flex items-center gap-2.5 no-underline">
-            <OrbitMark size={22} attention={anyAttention} className="text-dusk" />
+          <Link href="/app" className="flex items-center gap-2.5 text-ink no-underline">
+            <OrbitMark size={22} attention={anyAttention} className="text-halo" />
             <Wordmark size={16} />
           </Link>
           <div className="flex items-center gap-4">

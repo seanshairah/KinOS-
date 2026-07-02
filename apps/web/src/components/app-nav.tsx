@@ -33,7 +33,7 @@ export function AppNav({ items }: { items: NavItem[] }) {
               <span
                 className={cx(
                   "ml-2 rounded-pill px-2 py-0.5 font-mono text-[10.5px]",
-                  active ? "bg-white/20 text-white" : "bg-ember-soft text-[#8a531b]",
+                  active ? "bg-white/20 text-white" : "bg-ember-soft text-ember-text",
                 )}
               >
                 {item.badge}

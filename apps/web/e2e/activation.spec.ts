@@ -46,28 +46,28 @@ test("a family activates: workspace → orbit → invite → check-in → duty",
   // Landing in the app without a family goes to onboarding.
   await page.goto("/app");
   await expect(page).toHaveURL(/onboarding/);
-  await expect(page.getByText("Bring your family into one calm orbit.")).toBeVisible();
+  await expect(page.getByText("Five small moments", { exact: false })).toBeVisible();
 
-  // Step 1 — the family space.
-  await page.getByPlaceholder("e.g. Moyo Family").fill("E2E Family");
+  // Chapter 1 — the family space.
+  await page.getByPlaceholder("What do you call yourselves", { exact: false }).fill("E2E Family");
   await page.getByPlaceholder("Your first name").fill("Alex");
-  await page.getByRole("button", { name: "Create the space" }).click();
-  await expect(page.getByText("Add your first Orbit", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Name the space" }).click();
+  await expect(page.getByText("Who sits at the centre", { exact: false })).toBeVisible();
 
-  // Step 2 — the first Orbit.
+  // Chapter 2 — the first Orbit.
   await page
     .getByPlaceholder("What the family calls them — Mum, Baba, Gogo…")
     .fill("Gogo");
-  await page.getByRole("button", { name: "Add this Orbit" }).click();
-  await expect(page.getByText("Invite someone who shares the care")).toBeVisible();
+  await page.getByRole("button", { name: "Place them at the centre" }).click();
+  await expect(page.getByText("An orbit needs more than one light.")).toBeVisible();
 
-  // Step 3 — invite a second member.
-  await page.getByPlaceholder("Their email").fill(`invitee+${Date.now()}@kinos.test`);
+  // Chapter 3 — invite a second member.
+  await page.getByPlaceholder("Their email", { exact: false }).fill(`invitee+${Date.now()}@kinos.test`);
   await page.getByRole("button", { name: "Send the invitation" }).click();
-  await expect(page.getByRole("link", { name: "Open the check-in" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Gogo's check-in" })).toBeVisible();
 
-  // Step 4 — first check-in, big and simple.
-  await page.getByRole("link", { name: "Open the check-in" }).click();
+  // Chapter 4 — first check-in, big and simple.
+  await page.getByRole("link", { name: "Open Gogo's check-in" }).click();
   await expect(page.getByText("How is Gogo today?")).toBeVisible();
   await page.getByText("Doing well").click();
   await page.getByRole("button", { name: "Send today's check-in" }).click();

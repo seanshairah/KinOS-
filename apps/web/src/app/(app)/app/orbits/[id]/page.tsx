@@ -194,7 +194,7 @@ export default async function OrbitDetailPage({
                   <input type="hidden" name="medicationId" value={med.id} />
                   <input type="hidden" name="subjectId" value={subject.id} />
                   <input type="hidden" name="status" value="taken" />
-                  <button className="rounded-pill bg-calm-soft px-3.5 py-1.5 text-[12.5px] font-medium text-[#2f6a52] hover:brightness-95">
+                  <button className="rounded-pill bg-calm-soft px-3.5 py-1.5 text-[12.5px] font-medium text-calm-text hover:brightness-95">
                     Dose taken
                   </button>
                 </form>
@@ -242,7 +242,7 @@ export default async function OrbitDetailPage({
                   ) : (
                     <form action={confirmTransportForm}>
                       <input type="hidden" name="appointmentId" value={appt.id} />
-                      <button className="rounded-pill bg-ember-soft px-3.5 py-1.5 text-[12.5px] font-medium text-[#8a531b] hover:brightness-95">
+                      <button className="rounded-pill bg-ember-soft px-3.5 py-1.5 text-[12.5px] font-medium text-ember-text hover:brightness-95">
                         I&apos;ll handle transport
                       </button>
                     </form>
@@ -300,7 +300,7 @@ export default async function OrbitDetailPage({
               </div>
               <form action={completeDutyForm}>
                 <input type="hidden" name="dutyId" value={duty.id} />
-                <button className="rounded-pill bg-calm-soft px-3.5 py-1.5 text-[12.5px] font-medium text-[#2f6a52] hover:brightness-95">
+                <button className="rounded-pill bg-calm-soft px-3.5 py-1.5 text-[12.5px] font-medium text-calm-text hover:brightness-95">
                   Done
                 </button>
               </form>
