@@ -607,7 +607,12 @@ export default async function OrbitDetailPage({
       <Panel>
         <div className="mb-2 flex items-baseline justify-between">
           <Eyebrow>Life Signals</Eyebrow>
-          <span className="font-mono text-[11px] text-ink-faint">last 40</span>
+          <Link
+            href={`/app/orbits/${subject.id}/timeline`}
+            className="font-mono text-[11px] uppercase tracking-[0.12em] text-dusk-2 no-underline hover:text-ink"
+          >
+            the whole story →
+          </Link>
         </div>
         {signals.length === 0 ? (
           <CalmEmpty
