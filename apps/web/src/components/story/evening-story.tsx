@@ -58,15 +58,24 @@ function skyBackground(p: number): string {
 
 /* The acts of the evening, as fractions of the pinned scroll. */
 const ACT = {
-  intro: [0.0, 0.09],
-  chaos: [0.06, 0.3],
-  checkin: [0.3, 0.42],
-  voice: [0.42, 0.55],
-  money: [0.55, 0.65],
-  attention: [0.65, 0.75],
-  duty: [0.75, 0.85],
-  merge: [0.85, 1.0],
+  intro: [0.0, 0.085],
+  chaos: [0.055, 0.29],
+  checkin: [0.29, 0.425],
+  voice: [0.425, 0.575],
+  money: [0.575, 0.675],
+  attention: [0.675, 0.765],
+  duty: [0.765, 0.855],
+  merge: [0.855, 1.0],
 } as const;
+
+/**
+ * An act's internal animation finishes at 72% of its window and then
+ * HOLDS, fully played, for the rest — the reader always gets a still,
+ * complete moment before the scene hands off. Nothing finishes while
+ * it is already fading.
+ */
+const sceneT = (p: number, [a, b]: readonly [number, number]) =>
+  span(p, a, a + (b - a) * 0.72);
 
 function useScrollProgress(ref: React.RefObject<HTMLElement | null>) {
   const [progress, setProgress] = useState(0);
@@ -96,10 +105,10 @@ function useScrollProgress(ref: React.RefObject<HTMLElement | null>) {
   return progress;
 }
 
-/** Visibility envelope for an act: gentle in, gentle out. */
+/** Visibility envelope for an act: gentle in, late and gentle out. */
 function act(p: number, [a, b]: readonly [number, number], hold = false) {
-  const on = ease(span(p, a, a + 0.03));
-  const off = hold ? 1 : 1 - ease(span(p, b - 0.025, b));
+  const on = ease(span(p, a, a + 0.025));
+  const off = hold ? 1 : 1 - ease(span(p, b - 0.018, b));
   return Math.min(on, off);
 }
 
@@ -167,7 +176,7 @@ export function EveningStory() {
   const closeT = ease(span(p, 0.955, 1));
 
   return (
-    <div ref={containerRef} style={{ height: "1250vh" }}>
+    <div ref={containerRef} style={{ height: "1350vh" }}>
       <div className="sticky top-0 h-screen overflow-hidden">
         {/* one sky, two lights, no boundary */}
         <div aria-hidden className="absolute inset-0" style={{ background: skyBackground(p) }} />
@@ -235,27 +244,27 @@ export function EveningStory() {
           </Scene>
 
           <Scene visible={act(p, [ACT.chaos[0], ACT.chaos[1]])}>
-            <ChatChaos t={span(p, 0.07, 0.19)} dissolve={span(p, 0.2, 0.3)} />
+            <ChatChaos t={span(p, 0.06, 0.16)} dissolve={span(p, 0.175, 0.26)} />
           </Scene>
 
           <Scene visible={act(p, ACT.checkin)}>
-            <CheckInMoment t={span(p, ACT.checkin[0], ACT.checkin[1] - 0.015)} />
+            <CheckInMoment t={sceneT(p, ACT.checkin)} />
           </Scene>
 
           <Scene visible={act(p, ACT.voice)}>
-            <VoiceNoteTransform t={span(p, ACT.voice[0], ACT.voice[1] - 0.015)} />
+            <VoiceNoteTransform t={sceneT(p, ACT.voice)} />
           </Scene>
 
           <Scene visible={act(p, ACT.money)}>
-            <MoneyPotMoment t={span(p, ACT.money[0], ACT.money[1] - 0.012)} />
+            <MoneyPotMoment t={sceneT(p, ACT.money)} />
           </Scene>
 
           <Scene visible={act(p, ACT.attention)}>
-            <AttentionMoment t={span(p, ACT.attention[0], ACT.attention[1] - 0.012)} />
+            <AttentionMoment t={sceneT(p, ACT.attention)} />
           </Scene>
 
           <Scene visible={act(p, ACT.duty)}>
-            <DutyResolution t={span(p, ACT.duty[0], ACT.duty[1] - 0.012)} />
+            <DutyResolution t={sceneT(p, ACT.duty)} />
           </Scene>
 
           {/* 5.9 the merge — the signature scene */}
