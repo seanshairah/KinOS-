@@ -99,6 +99,30 @@
     filter: none;
   }
 }
+/* a room settling into place — content arrives like dusk, not like a popup */
+.room-enter {
+  animation: reveal-up 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+/* quiet loading shimmer for glass skeletons */
+@keyframes room-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  border-radius: var(--r-sm);
+  background: linear-gradient(
+    100deg,
+    rgba(169, 167, 224, 0.08) 40%,
+    rgba(169, 167, 224, 0.2) 50%,
+    rgba(169, 167, 224, 0.08) 60%
+  );
+  background-size: 200% 100%;
+  animation: room-shimmer 1.8s ease-in-out infinite;
+}
 
 .spin-slow {
   animation: orbit-spin 60s linear infinite;
@@ -275,7 +299,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .orbit-pulse,
-  .chat-bob {
+  .chat-bob,
+  .room-enter,
+  .skeleton {
     animation: none !important;
   }
 }

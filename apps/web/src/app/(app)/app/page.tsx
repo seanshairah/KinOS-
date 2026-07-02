@@ -1,45 +1,56 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatSignalTime } from "@kinos/config";
-import {
-  BriefBlock,
-  ButtonLink,
-  EmptyState,
-  Eyebrow,
-  OrbitCard,
-  Panel,
-  type OrbitSignalPill,
-} from "@kinos/ui";
 import { withUser } from "@kinos/db";
 import { requireUserId, getFamilyContext } from "@/lib/data/context";
 import { listOrbits, type OrbitSummary } from "@/lib/data/orbits";
+import { listOpenAttention } from "@/lib/data/attention";
+import { listDuties } from "@/lib/data/duties";
+import { listRecentSignals, describeSignal } from "@/lib/data/signals";
+import { MiniOrbit, type OrbitStatus } from "@/components/mini-orbit";
+import {
+  CalmEmpty,
+  PaperBrief,
+  RoomHeader,
+  RoomSection,
+  SignalRow,
+  StatusWord,
+} from "@/components/rooms";
 
-function orbitPills(orbit: OrbitSummary): OrbitSignalPill[] {
-  const pills: OrbitSignalPill[] = [];
-  if (orbit.dosesToday.taken > 0) {
-    pills.push({ label: `doses ✓ ${orbit.dosesToday.taken}`, tone: "ok" });
-  }
-  if (orbit.nextAppointment && !orbit.nextAppointment.transport_confirmed) {
-    pills.push({ label: "transport open", tone: "attn" });
-  }
-  if (orbit.lastCheckinMood) {
-    pills.push({
-      label: `mood · ${orbit.lastCheckinMood}`,
-      tone: orbit.lastCheckinMood === "good" ? "ok" : "neutral",
-    });
-  }
-  if (orbit.openDuties > 0) {
-    pills.push({ label: `${orbit.openDuties} duties`, tone: "neutral" });
-  }
-  return pills.slice(0, 4);
+/**
+ * The Today Room — the first screen after sign-in. It answers, in five
+ * seconds: is everyone okay, and what needs attention today? Hierarchy
+ * is fixed: status → attention → duties → orbits → latest signals.
+ * Deep detail is always one tap away, never on this surface.
+ */
+
+function dayPart(tz: string): { greeting: string; word: string; tone: string } {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: tz }).format(
+      new Date(),
+    ),
+  );
+  if (hour < 12)
+    return { greeting: "Good morning", word: "today", tone: "Here is what needs attention today." };
+  if (hour < 18)
+    return { greeting: "Good afternoon", word: "this afternoon", tone: "Here is what changed." };
+  return { greeting: "Good evening", word: "tonight", tone: "Here is where things stand tonight." };
 }
 
-function orbitSubline(orbit: OrbitSummary): string {
+function orbitStatus(orbit: OrbitSummary): OrbitStatus {
+  if (orbit.status === "urgent") return "urgent";
+  if (orbit.status === "attention") return "attention";
+  const recent =
+    orbit.lastCheckin && Date.now() - new Date(orbit.lastCheckin).getTime() < 2 * 3600_000;
+  return recent ? "signal" : "steady";
+}
+
+function orbitLine(orbit: OrbitSummary): string {
   const parts: string[] = [];
   parts.push(
     orbit.lastCheckin
-      ? `Checked in ${formatSignalTime(new Date(orbit.lastCheckin).toISOString(), orbit.subject.timezone)}`
-      : "No check-in yet today",
+      ? `checked in ${formatSignalTime(new Date(orbit.lastCheckin).toISOString(), orbit.subject.timezone)}`
+      : "no check-in yet today",
   );
   if (orbit.nextAppointment) {
     const when = new Intl.DateTimeFormat("en-GB", {
@@ -48,20 +59,23 @@ function orbitSubline(orbit: OrbitSummary): string {
       minute: "2-digit",
       timeZone: orbit.subject.timezone,
     }).format(new Date(orbit.nextAppointment.starts_at));
-    parts.push(`${orbit.nextAppointment.title} ${when}`);
+    parts.push(`${orbit.nextAppointment.title} · ${when}`);
+    if (!orbit.nextAppointment.transport_confirmed) parts.push("transport open");
   }
   return parts.join(" · ");
 }
 
-export default async function OrbitViewPage() {
+export default async function TodayRoomPage() {
   const userId = await requireUserId();
   const ctx = await getFamilyContext(userId);
   if (!ctx) redirect("/app/onboarding");
 
   const orbits = await listOrbits(userId);
+  const tz = orbits[0]?.subject.timezone ?? "Africa/Harare";
+  const day = dayPart(tz);
+  const firstName = ctx.member.display_name?.split(" ")[0];
 
-  // The person being cared for gets a big, simple home: check in, reach
-  // the family, read today's words. Supported — never dashboarded.
+  // The person being cared for gets a big, simple home — never a dashboard.
   if (ctx.member.role === "care_recipient" && orbits.length > 0) {
     const mine = orbits[0]!;
     const myBrief = await withUser(userId, async (db) => {
@@ -73,120 +87,272 @@ export default async function OrbitViewPage() {
     });
     return (
       <div className="mx-auto flex max-w-[560px] flex-col gap-8 pt-4">
-        <div className="text-center">
-          <Eyebrow>Good day</Eyebrow>
-          <h1 className="mt-2 font-serif text-[38px] font-light leading-[1.15]">
-            Hello{ctx.member.display_name ? `, ${ctx.member.display_name}` : ""}.
+        <div className="room-enter text-center">
+          <span className="font-mono text-[10.5px] uppercase tracking-[0.22em] text-halo">
+            {day.greeting}
+          </span>
+          <h1 className="mt-3 font-serif text-[38px] font-light leading-[1.15] text-ink">
+            Hello{firstName ? `, ${firstName}` : ""}.
           </h1>
           <p className="mt-2 text-[17px] text-ink-soft">Your family is thinking of you.</p>
         </div>
         <Link
           href={`/app/orbits/${mine.subject.id}/check-in`}
-          className="rounded-orbit bg-dusk px-8 py-7 text-center text-[22px] font-semibold text-white no-underline shadow-float hover:bg-dusk-2"
+          className="room-enter lift rounded-orbit bg-dusk px-8 py-7 text-center text-[22px] font-semibold text-white no-underline shadow-float hover:bg-dusk-2"
         >
           Check in for today
         </Link>
         <Link
           href={`/app/emergency?subject=${mine.subject.id}`}
-          className="rounded-orbit border-2 border-urgent/50 bg-paper-3 px-8 py-6 text-center text-[19px] font-semibold text-urgent no-underline hover:bg-urgent-bg"
+          className="room-enter rounded-orbit border-2 border-urgent/50 bg-urgent-bg px-8 py-6 text-center text-[19px] font-semibold text-urgent no-underline"
         >
           I need the family now
         </Link>
-        {myBrief && (
-          <Panel>
-            <BriefBlock meta="Today, in the family's words">{myBrief}</BriefBlock>
-          </Panel>
-        )}
+        {myBrief && <PaperBrief meta="Today, in the family's words" body={myBrief} />}
       </div>
     );
   }
 
-  // The latest brief across orbits, for the home surface.
-  const latestBrief = await withUser(userId, async (db) => {
-    const res = await db.query(
-      `select b.*, s.display_name as subject_name from daily_brief b
-       join care_subject s on s.id = b.subject_id
-       order by b.created_at desc limit 1`,
-    );
-    return res.rows[0] ?? null;
-  });
+  const [attention, openDuties, signals, latestBrief] = await Promise.all([
+    listOpenAttention(userId),
+    listDuties(userId, "open"),
+    listRecentSignals(userId, 8),
+    withUser(userId, async (db) => {
+      const res = await db.query(
+        `select b.*, s.display_name as subject_name from daily_brief b
+         join care_subject s on s.id = b.subject_id
+         order by b.created_at desc limit 1`,
+      );
+      return res.rows[0] ?? null;
+    }),
+  ]);
+
+  // The five-second answer, computed from the family's real state.
+  const steady = attention.length === 0;
+  const names = orbits.map((o) => o.subject.display_name);
+  const headline =
+    orbits.length === 0
+      ? "Your first Orbit is waiting."
+      : steady
+        ? names.length === 1
+          ? `${names[0]} is steady ${day.word}.`
+          : `Everyone is steady ${day.word}.`
+        : attention.length === 1
+          ? `One thing needs the family ${day.word}.`
+          : `${attention.length} things need the family ${day.word}.`;
+  const subline =
+    orbits.length === 0
+      ? "Add the person at the centre of the family's care, and the sky starts watching."
+      : steady
+        ? `Nothing needs attention. ${day.tone}`
+        : attention[0]!.title;
 
   const now = new Intl.DateTimeFormat("en-GB", {
     weekday: "short",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: tz,
   }).format(new Date());
+
+  const topDuties = openDuties.slice(0, 3);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <Eyebrow>Orbit View</Eyebrow>
-          <h1 className="mt-1 font-serif text-[28px] font-normal tracking-[-0.01em]">
-            {ctx.workspace.name}
-          </h1>
-        </div>
-        <span className="font-mono text-[11px] text-ink-faint">{now}</span>
-      </div>
+      <RoomHeader
+        room={`Today · ${ctx.workspace.name}`}
+        meta={now}
+        headline={
+          <>
+            {day.greeting}
+            {firstName ? `, ${firstName}` : ""}.{" "}
+            <span className="text-ink-soft">{headline}</span>
+          </>
+        }
+        sub={subline}
+      />
 
-      {orbits.length === 0 ? (
-        <EmptyState
-          title="Your first Orbit is waiting."
-          hint="An Orbit is a loved one at the centre of the family's care — a parent, a child, someone recovering."
+      {orbits.length === 0 && (
+        <CalmEmpty
+          title="The room is ready — it just needs its first person."
+          hint="An Orbit is a loved one at the centre of the family's care: a parent, a child, someone recovering."
           action={
-            <ButtonLink href="/app/onboarding" className="no-underline">
+            <Link
+              href="/app/onboarding"
+              className="lift inline-block rounded-pill bg-white px-5 py-2.5 text-[13.5px] font-semibold text-dusk no-underline"
+            >
               Add a loved one
-            </ButtonLink>
+            </Link>
           }
         />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {orbits.map((orbit, i) => (
-            <OrbitCard
-              key={orbit.subject.id}
-              href={`/app/orbits/${orbit.subject.id}`}
-              name={orbit.subject.display_name}
-              subline={orbitSubline(orbit)}
-              status={orbit.status}
-              avatarIndex={i}
-              signals={orbitPills(orbit)}
-            />
-          ))}
-        </div>
       )}
 
-      {latestBrief && (
-        <Panel>
-          <BriefBlock
-            meta={`Daily Brief · ${latestBrief.subject_name} · ${latestBrief.kind}`}
-            actions={
+      {/* ——— attention, first and honest ——— */}
+      {attention.length > 0 && (
+        <RoomSection title="Attention needed" delay={60}>
+          <div className="flex flex-col gap-2.5">
+            {attention.slice(0, 3).map((event) => (
               <Link
-                href={`/app/orbits/${latestBrief.subject_id}`}
-                className="rounded-pill bg-dusk px-3.5 py-2 text-[12.5px] font-medium text-white no-underline hover:bg-dusk-2"
+                key={event.id}
+                href="/app/attention"
+                className="group flex items-center gap-3.5 rounded-card border border-ember-soft bg-attn-bg px-4 py-3.5 no-underline transition-colors hover:border-ember/50"
               >
-                Open {latestBrief.subject_name}&apos;s Orbit
+                <span className="orbit-pulse h-2 w-2 flex-none rounded-full bg-ember shadow-[0_0_10px_rgba(217,138,61,.6)]" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-medium leading-snug text-ink">
+                    {event.title}
+                  </span>
+                  <span className="mt-0.5 block font-mono text-[10.5px] text-ink-faint">
+                    {event.subject_name}
+                    {event.owner_name ? ` · ${event.owner_name} holds it` : " · unowned"}
+                    {event.escalate_at
+                      ? ` · escalates ${new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: tz }).format(new Date(event.escalate_at))}`
+                      : ""}
+                  </span>
+                </span>
+                <span className="flex-none font-mono text-[11px] text-ember-text transition-transform duration-300 group-hover:translate-x-0.5">
+                  open →
+                </span>
+              </Link>
+            ))}
+          </div>
+        </RoomSection>
+      )}
+
+      {/* ——— the day, in the family's words ——— */}
+      {latestBrief && (
+        <PaperBrief
+          meta={`Daily Brief · ${latestBrief.subject_name} · ${latestBrief.kind}`}
+          body={latestBrief.body as string}
+          action={
+            <Link
+              href={`/app/orbits/${latestBrief.subject_id}`}
+              className="rounded-pill bg-dusk px-3.5 py-2 text-[12.5px] font-medium text-white no-underline hover:bg-dusk-2"
+            >
+              Open {latestBrief.subject_name}&apos;s Orbit
+            </Link>
+          }
+        />
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+        {/* ——— the orbits: each loved one, at a glance ——— */}
+        <div className="flex flex-col gap-3">
+          {orbits.map((orbit, i) => {
+            const status = orbitStatus(orbit);
+            return (
+              <Link
+                key={orbit.subject.id}
+                href={`/app/orbits/${orbit.subject.id}`}
+                className="room-enter lift group flex items-center gap-4 rounded-orbit border border-line bg-paper-2 p-4 no-underline shadow-card md:p-5"
+                style={{ animationDelay: `${120 + i * 70}ms` }}
+              >
+                <MiniOrbit status={status} size={58} seed={i} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2.5">
+                    <span className="font-serif text-[19px] font-normal text-ink">
+                      {orbit.subject.display_name}
+                    </span>
+                    <StatusWord status={status} />
+                  </span>
+                  <span className="mt-1 block truncate font-mono text-[11px] leading-relaxed text-ink-faint">
+                    {orbitLine(orbit)}
+                  </span>
+                  <span className="mt-1.5 flex flex-wrap gap-1.5">
+                    {orbit.dosesToday.taken > 0 && (
+                      <span className="rounded-pill border border-calm-soft px-2 py-0.5 font-mono text-[10px] text-calm-text">
+                        doses ✓ {orbit.dosesToday.taken}
+                      </span>
+                    )}
+                    {orbit.openDuties > 0 && (
+                      <span className="rounded-pill border border-line-2 px-2 py-0.5 font-mono text-[10px] text-ink-soft">
+                        {orbit.openDuties} dut{orbit.openDuties === 1 ? "y" : "ies"}
+                      </span>
+                    )}
+                    {orbit.openAttention > 0 && (
+                      <span className="rounded-pill border border-ember-soft px-2 py-0.5 font-mono text-[10px] text-ember-text">
+                        {orbit.openAttention} needs attention
+                      </span>
+                    )}
+                  </span>
+                </span>
+                <span className="flex-none text-ink-faint transition-transform duration-300 group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {/* ——— today's duties, top three only ——— */}
+          <RoomSection
+            title="Today's duties"
+            delay={160}
+            action={
+              <Link href="/app/duties" className="font-mono text-[11px] text-halo no-underline hover:text-ink">
+                all duties →
               </Link>
             }
           >
-            {latestBrief.body}
-          </BriefBlock>
-        </Panel>
-      )}
+            {topDuties.length === 0 ? (
+              <p className="py-1 text-[13.5px] leading-relaxed text-ink-soft">
+                Nothing is waiting on anyone. The list is clear.
+              </p>
+            ) : (
+              <div className="flex flex-col">
+                {topDuties.map((duty) => (
+                  <div key={duty.id} className="flex items-baseline gap-3 border-t border-line py-2.5 first:border-t-0">
+                    <span
+                      aria-hidden
+                      className={`relative top-[-2px] h-[6px] w-[6px] flex-none rounded-full ${duty.status === "late" || duty.priority === "high" ? "bg-ember" : "bg-halo"}`}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13.5px] leading-snug text-ink">{duty.title}</span>
+                      <span className="mt-0.5 block font-mono text-[10.5px] text-ink-faint">
+                        {duty.owner_name ?? "unassigned"}
+                        {duty.due_at
+                          ? ` · due ${new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: tz }).format(new Date(duty.due_at))}`
+                          : ""}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </RoomSection>
 
-      {orbits.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          <ButtonLink
-            href={`/app/orbits/${orbits[0]!.subject.id}/check-in`}
-            variant="ghost"
-            className="no-underline"
+          {/* ——— latest life signals, quiet mono rows ——— */}
+          <RoomSection
+            title="Latest life signals"
+            delay={220}
+            action={
+              <Link href="/app/signals" className="font-mono text-[11px] text-halo no-underline hover:text-ink">
+                all signals →
+              </Link>
+            }
           >
-            Check in for {orbits[0]!.subject.display_name}
-          </ButtonLink>
-          <ButtonLink href="/app/duties" variant="ghost" className="no-underline">
-            See all duties
-          </ButtonLink>
+            {signals.length === 0 ? (
+              <p className="py-1 text-[13.5px] leading-relaxed text-ink-soft">
+                The first check-in, note or receipt will appear here.
+              </p>
+            ) : (
+              <div className="flex flex-col">
+                {signals.slice(0, 6).map((s) => {
+                  const d = describeSignal(s);
+                  return (
+                    <SignalRow
+                      key={s.id}
+                      time={new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: tz }).format(new Date(s.occurred_at))}
+                      text={d.text}
+                      tone={d.tone}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </RoomSection>
         </div>
-      )}
+      </div>
     </div>
   );
 }

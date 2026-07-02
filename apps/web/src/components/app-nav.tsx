@@ -4,6 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "@kinos/ui";
 
+/**
+ * Room navigation — each operating room is a light in the hall. The
+ * active room glows lavender; a room holding attention carries a soft
+ * ember count. Horizontal on phones, a quiet column on wider screens.
+ */
+
 export interface NavItem {
   href: string;
   label: string;
@@ -22,20 +28,26 @@ export function AppNav({ items }: { items: NavItem[] }) {
             key={item.href}
             href={item.href}
             className={cx(
-              "flex items-center justify-between rounded-card px-3.5 py-2.5 text-[13.5px] font-medium no-underline transition-colors",
-              active
-                ? "bg-dusk text-white"
-                : "text-ink-soft hover:bg-paper-2 hover:text-ink",
+              "group flex items-center justify-between gap-2 whitespace-nowrap rounded-card px-3.5 py-2.5 text-[13.5px] font-medium no-underline transition-colors",
+              active ? "bg-halo/[.13] text-ink" : "text-ink-soft hover:bg-paper-2 hover:text-ink",
             )}
           >
-            <span>{item.label}</span>
-            {item.badge ? (
+            <span className="flex items-center gap-2.5">
               <span
+                aria-hidden
                 className={cx(
-                  "ml-2 rounded-pill px-2 py-0.5 font-mono text-[10.5px]",
-                  active ? "bg-white/20 text-white" : "bg-ember-soft text-ember-text",
+                  "h-[6px] w-[6px] flex-none rounded-full transition-all duration-300",
+                  active
+                    ? "bg-halo shadow-[0_0_8px_rgba(169,167,224,.8)]"
+                    : item.badge
+                      ? "bg-ember shadow-[0_0_6px_rgba(217,138,61,.6)]"
+                      : "bg-line-2 group-hover:bg-halo/60",
                 )}
-              >
+              />
+              <span>{item.label}</span>
+            </span>
+            {item.badge ? (
+              <span className="ml-1 rounded-pill border border-ember-soft bg-attn-bg px-1.5 py-0.5 font-mono text-[10px] leading-none text-ember-text">
                 {item.badge}
               </span>
             ) : null}
