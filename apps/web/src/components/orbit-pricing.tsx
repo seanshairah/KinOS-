@@ -20,7 +20,7 @@ const PLANS = [
   {
     name: "Family Core",
     blurb: "Daily Brief, medication, appointments, duties, record.",
-    price: "$9",
+    price: "$8",
     details: ["The Daily Brief, every evening", "Medication rhythms and appointments", "Duties with names on them", "The Family Record begins"],
   },
   {
@@ -32,13 +32,13 @@ const PLANS = [
   {
     name: "Family Premium",
     blurb: "Multiple Orbits, caregiver access, document vault.",
-    price: "$29",
+    price: "$39",
     details: ["More than one loved one", "Caregivers with consent-scoped access", "A vault for the documents that matter"],
   },
   {
     name: "Diaspora Care",
     blurb: "Caregiver proof, shared fund, cross-border briefs.",
-    price: "$39",
+    price: "$22",
     details: ["Proof of care across borders", "A shared fund the family can see", "Briefs that land in every timezone"],
   },
   {

@@ -293,8 +293,9 @@ export async function generatePatterns(): Promise<number> {
 export async function healthSync(): Promise<number> {
   const { processParkedNotifications } = await import("./integrations/withings");
   const processed = await processParkedNotifications();
-  await withService((db) =>
-    db.query(`delete from health_reading where expires_at < now()`),
-  ).catch(() => {});
+  await withService(async (db) => {
+    await db.query(`delete from health_reading where expires_at < now()`);
+    await db.query(`select rate_limit_sweep()`);
+  }).catch(() => {});
   return processed;
 }
