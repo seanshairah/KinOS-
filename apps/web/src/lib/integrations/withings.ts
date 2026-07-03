@@ -33,7 +33,7 @@ function appUrl(): string {
   // Guard against placeholder values: only trust a real absolute URL.
   return url && /^https:\/\/[^\s<>]+$/.test(url)
     ? url.replace(/\/$/, "")
-    : "https://kin-os-web.vercel.app";
+    : "https://kinos.family";
 }
 
 export function callbackUrl(): string {

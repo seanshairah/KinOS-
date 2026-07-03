@@ -10,6 +10,7 @@ import { OrbitPricing } from "@/components/orbit-pricing";
 import { FAMILY_SATELLITES, OrbitSystem } from "@/components/orbit/orbit-system";
 import { EveningStory } from "@/components/story/evening-story";
 import { FaqList } from "@/components/faq-list";
+import { WaitlistForm } from "@/components/waitlist-form";
 import { VoicesDeck } from "@/components/voices-deck";
 
 /**
@@ -240,30 +241,23 @@ export default function LandingPage() {
               />
               Know what matters before it becomes a crisis
             </div>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Magnetic>
-                <Link
-                  href="#story"
-                  className="lift rounded-pill bg-white px-6 py-3 text-[14px] font-semibold text-dusk no-underline hover:bg-dusk-ink"
-                >
-                  Live one evening
-                </Link>
-              </Magnetic>
-              <Magnetic>
-                <Link
-                  href="/sign-in"
-                  className="lift rounded-pill border border-halo/40 px-6 py-3 text-[14px] font-medium text-dusk-ink no-underline hover:border-halo"
-                >
-                  Start your family space
-                </Link>
-              </Magnetic>
+            <div className="mt-8">
+              <WaitlistForm source="home-hero" tone="dusk" />
             </div>
-            <a
-              href="/api/demo/visit"
-              className="mt-4 inline-block font-mono text-[12px] text-halo underline decoration-halo/40 underline-offset-4 hover:text-white"
-            >
-              or wander a living family space first →
-            </a>
+            <div className="mt-4 flex flex-wrap items-center gap-4 font-mono text-[12px] text-halo">
+              <Link
+                href="#story"
+                className="underline decoration-halo/40 underline-offset-4 hover:text-white"
+              >
+                live one evening ↓
+              </Link>
+              <a
+                href="/api/demo/visit"
+                className="underline decoration-halo/40 underline-offset-4 hover:text-white"
+              >
+                or wander a living family space →
+              </a>
+            </div>
           </div>
           <div className="flex justify-center">
             <OrbitSystem size={430} satellites={FAMILY_SATELLITES} className="max-w-full" assemble />
@@ -531,15 +525,8 @@ export default function LandingPage() {
               <span className="text-[0.72em] text-[#c9c6e4]">The duty was handled.</span>
               <span className="mt-1 text-white">The family knows.</span>
             </div>
-            <div className="mt-10">
-              <Magnetic>
-                <Link
-                  href="/sign-in"
-                  className="lift rounded-pill bg-white px-7 py-3.5 text-[14.5px] font-semibold text-dusk no-underline"
-                >
-                  Start your family space
-                </Link>
-              </Magnetic>
+            <div className="mt-10 flex flex-col items-center gap-2">
+              <WaitlistForm source="home-close" tone="dusk" />
             </div>
             <p className="mt-5 font-mono text-[12px] text-halo">
               Free for one Orbit · no card needed ·{" "}

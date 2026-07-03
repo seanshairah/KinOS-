@@ -35,7 +35,8 @@ export default async function OpsPage() {
         (select count(*)::int from life_signal where occurred_at > now() - interval '24 hours') as signals_24h,
         (select count(*)::int from attention_event where status = 'open') as attention_open,
         (select count(*)::int from health_reading where created_at > now() - interval '7 days') as readings_7d,
-        (select count(*)::int from health_source_link where status = 'active') as device_links`);
+        (select count(*)::int from health_source_link where status = 'active') as device_links,
+        (select count(*)::int from waitlist_signup) as waitlist`);
     const plans = await db.query(
       `select plan_id, count(*)::int as n from family_workspace group by plan_id order by n desc`,
     );
@@ -83,6 +84,7 @@ export default async function OpsPage() {
         {stat("attention open", data.counts.attention_open)}
         {stat("readings · 7d", data.counts.readings_7d)}
         {stat("device links", data.counts.device_links)}
+        {stat("waitlist", data.counts.waitlist)}
       </div>
 
       <Panel className="flex flex-col gap-2">

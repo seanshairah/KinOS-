@@ -40,7 +40,7 @@ export async function upgradePlanAction(formData: FormData): Promise<ActionResul
 
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "https";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "kin-os-web.vercel.app";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "kinos.family";
   const base = `${proto}://${host}`;
 
   const session = await createSubscriptionCheckout({

@@ -90,7 +90,7 @@ async function sendEmailIfConfigured(notice: Notice): Promise<void> {
         to: email,
         subject: notice.title,
         text: `${notice.body ?? notice.title}\n\nOpen KinOS: ${
-          process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+          process.env.NEXT_PUBLIC_APP_URL ?? "https://kinos.family"
         }${notice.link ?? "/app"}`,
       }),
     }).catch(() => {});

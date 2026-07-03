@@ -149,7 +149,7 @@ export async function inviteMemberAction(formData: FormData): Promise<ActionResu
   });
 
   // Send the invite by email when configured; the link always works.
-  const link = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/invite/${token}`;
+  const link = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://kinos.family"}/invite/${token}`;
   if (process.env.RESEND_API_KEY && parsed.data.email) {
     await fetch("https://api.resend.com/emails", {
       method: "POST",
