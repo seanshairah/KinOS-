@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { getPool, isDatabaseConfigured } from "@kinos/db";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 /**
  * Keyed demo entrance — a way to walk through a living family space
@@ -22,6 +23,9 @@ export async function GET(req: NextRequest) {
   if (!isDatabaseConfigured()) return NextResponse.redirect(new URL("/", req.url));
   const key = req.nextUrl.searchParams.get("key");
   if (!key || key.length < 24) return new NextResponse("Not found", { status: 404 });
+  if (!(await rateLimit(`demo:${clientIp(req)}`, 10, 3600))) {
+    return new NextResponse("Not found", { status: 404 });
+  }
 
   const pool = getPool();
   const valid = await pool.query(

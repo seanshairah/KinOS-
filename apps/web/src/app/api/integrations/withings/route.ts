@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { withService } from "@kinos/db";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,9 @@ export function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await rateLimit(`withings:${clientIp(request)}`, 120, 60))) {
+    return NextResponse.json({ received: true }); // still 200: never make Withings retry-storm
+  }
   const form = await request.formData().catch(() => null);
   const externalUserId = form?.get("userid")?.toString();
   if (!externalUserId) return NextResponse.json({ received: true });
