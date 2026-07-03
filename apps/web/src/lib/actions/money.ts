@@ -87,7 +87,7 @@ export async function contributeAction(formData: FormData): Promise<ActionResult
       );
       return res.rows[0]!.id as string;
     });
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://kinos.family";
     const checkout = await createContributionCheckout({
       paymentIntentId: intent,
       potName: pot.name,
