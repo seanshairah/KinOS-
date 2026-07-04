@@ -6,6 +6,7 @@ import {
   switchWorkspaceForm,
   upgradePlanForm,
   setReachPreferencesForm,
+  setQuietHoursForm,
 } from "@/lib/actions/forms";
 import { PLANS, type PlanId } from "@kinos/config";
 import { Eyebrow, Panel, Pill } from "@kinos/ui";
@@ -53,6 +54,16 @@ export default async function SettingsPage({
     };
   });
   const cp = { push: true, email: true, whatsapp: false, sms: false, ...(reach.channel_prefs ?? {}) };
+  const quiet = isAdmin
+    ? await withUser(ctx.userId, async (db) => {
+        const r = await db.query(
+          `select quiet_hours from escalation_rule where workspace_id = $1 and kind = 'default'`,
+          [ctx.workspace.id],
+        );
+        const q = (r.rows[0]?.quiet_hours ?? {}) as { enabled?: boolean; start?: string; end?: string };
+        return { enabled: q.enabled ?? true, start: q.start ?? "21:00", end: q.end ?? "07:00" };
+      })
+    : null;
   const [members, invitations, grants, subjects, accessLog, memberships] = await Promise.all([
     listMembers(ctx.userId),
     isAdmin ? listInvitations(ctx.userId) : Promise.resolve([]),
@@ -212,6 +223,35 @@ export default async function SettingsPage({
           </button>
         </form>
       </Panel>
+
+      {/* quiet hours (admins) */}
+      {isAdmin && quiet && (
+        <Panel className="flex flex-col gap-3">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+            Quiet hours
+          </h2>
+          <p className="text-[13px] leading-relaxed text-ink-soft">
+            During quiet hours KinOS holds non-urgent escalations until morning. Urgent
+            things never wait. This shapes how everyone in the family is reached.
+          </p>
+          <form action={setQuietHoursForm} className="flex flex-wrap items-end gap-4">
+            <label className="flex items-center gap-1.5 text-[13px] text-ink-soft">
+              <input type="checkbox" name="enabled" defaultChecked={quiet.enabled} /> On
+            </label>
+            <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.1em] text-ink-faint">
+              From
+              <input type="time" name="start" defaultValue={quiet.start} className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.1em] text-ink-faint">
+              Until
+              <input type="time" name="end" defaultValue={quiet.end} className={inputClass} />
+            </label>
+            <button className="rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">
+              Save quiet hours
+            </button>
+          </form>
+        </Panel>
+      )}
 
       {/* members */}
       <Panel className="flex flex-col gap-3">
