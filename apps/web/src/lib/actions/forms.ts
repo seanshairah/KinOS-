@@ -25,6 +25,7 @@ import {
   createOrbitAction,
   deleteWorkspaceAction,
   leaveWorkspaceAction,
+  setLocaleAction,
   switchWorkspaceAction,
   grantConsentAction,
   inviteMemberAction,
@@ -97,6 +98,9 @@ export async function leaveWorkspaceForm(fd: FormData): Promise<void> {
 }
 export async function switchWorkspaceForm(fd: FormData): Promise<void> {
   await switchWorkspaceAction(fd);
+}
+export async function setLocaleForm(fd: FormData): Promise<void> {
+  await setLocaleAction(fd);
 }
 export async function setReachPreferencesForm(fd: FormData): Promise<void> {
   await setReachPreferencesAction(fd);

@@ -8,8 +8,10 @@ import {
   upgradePlanForm,
   setReachPreferencesForm,
   setQuietHoursForm,
+  setLocaleForm,
 } from "@/lib/actions/forms";
-import { PLANS, type PlanId } from "@kinos/config";
+import { PLANS, LOCALE_META, SUPPORTED_LOCALES, type PlanId } from "@kinos/config";
+import { getLocale } from "@/lib/i18n";
 import { Eyebrow, Panel, Pill } from "@kinos/ui";
 
 import { EnableNotifications } from "@/components/enable-notifications";
@@ -76,6 +78,7 @@ export default async function SettingsPage({
 
   const planId = (ctx.workspace.plan_id in PLANS ? ctx.workspace.plan_id : "free") as PlanId;
   const plan = PLANS[planId];
+  const locale = await getLocale();
 
   return (
     <div className="flex flex-col gap-6">
@@ -221,6 +224,30 @@ export default async function SettingsPage({
           </p>
           <button className="self-start rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">
             Save how I&apos;m reached
+          </button>
+        </form>
+      </Panel>
+
+      {/* language */}
+      <Panel className="flex flex-col gap-3">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+          Language
+        </h2>
+        <p className="text-[13px] leading-relaxed text-ink-soft">
+          Choose the language KinOS speaks to you in. It&apos;s a per-device choice, so
+          it&apos;s right even when the family shares one phone.
+        </p>
+        <form action={setLocaleForm} className="flex flex-wrap items-center gap-2">
+          <select name="locale" defaultValue={locale} className={inputClass}>
+            {SUPPORTED_LOCALES.map((l) => (
+              <option key={l} value={l}>
+                {LOCALE_META[l].native}
+                {LOCALE_META[l].native === LOCALE_META[l].label ? "" : ` · ${LOCALE_META[l].label}`}
+              </option>
+            ))}
+          </select>
+          <button className="rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">
+            Save language
           </button>
         </form>
       </Panel>
