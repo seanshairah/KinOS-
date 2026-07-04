@@ -295,6 +295,31 @@ export async function deleteWorkspaceAction(formData: FormData): Promise<ActionR
 }
 
 /**
+ * Leave a family space on your own — the counterpart to deletion, for
+ * members who aren't admins (or admins who've handed the keys on). The RPC
+ * re-checks the last-admin guard; typing the space's name is the human brake.
+ * The workspace cookie is cleared so context re-resolves to another space,
+ * or to onboarding if this was the last one.
+ */
+export async function leaveWorkspaceAction(formData: FormData): Promise<ActionResult> {
+  const ctx = await requireFamilyContext();
+  const parsed = deleteSchema.safeParse({ confirmName: formData.get("confirmName") });
+  if (!parsed.success || parsed.data.confirmName.trim() !== ctx.workspace.name) {
+    return { ok: false, message: "Type the family space's exact name to confirm." };
+  }
+  try {
+    await withUser(ctx.userId, (db) => db.query(`select leave_workspace($1)`, [ctx.workspace.id]));
+  } catch {
+    return {
+      ok: false,
+      message: "Make another member an admin before you leave, or delete the space.",
+    };
+  }
+  (await cookies()).delete("kinos_ws");
+  redirect("/app");
+}
+
+/**
  * Switch which family space this browser is looking at. Membership is
  * verified under RLS before the cookie moves; a forged workspace id
  * simply matches nothing.

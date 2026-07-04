@@ -445,6 +445,100 @@ d("row-level security", () => {
       ).toHaveLength(1);
     });
   });
+
+  describe("leaving a family space", () => {
+    it("a member leaves on their own; work unassigns, audit survives, last admin is held", async () => {
+      const stamp = `${Date.now()}-leave`;
+      const mk = async (name: string) =>
+        (
+          await pool.query<{ id: string }>(
+            `insert into app_user (name, email, email_verified)
+             values ($1, $2, now()) returning id`,
+            [name, `${name.toLowerCase()}+${stamp}@leave.test`],
+          )
+        ).rows[0]!.id;
+
+      const leadId = await mk("Lead");
+      const helperId = await mk("Helper");
+
+      // Lead founds the space; Helper joins as a plain member.
+      const wsL = await asUser(leadId, async (c) => {
+        const r = await c.query<{ create_workspace: string }>(
+          `select create_workspace('Family Leave', 'Lead')`,
+        );
+        return r.rows[0]!.create_workspace;
+      });
+      const helperMemberId = (
+        await pool.query<{ id: string }>(
+          `insert into family_member (workspace_id, user_id, display_name, role)
+           values ($1, $2, 'Helper', 'member') returning id`,
+          [wsL, helperId],
+        )
+      ).rows[0]!.id;
+
+      const subjectL = await asUser(leadId, async (c) => {
+        const r = await c.query<{ id: string }>(
+          `insert into care_subject (workspace_id, display_name, kind)
+           values ($1, 'Gogo L', 'elder') returning id`,
+          [wsL],
+        );
+        return r.rows[0]!.id;
+      });
+      // Helper owns a duty — it must survive their departure, unassigned.
+      const dutyId = (
+        await pool.query<{ id: string }>(
+          `insert into duty (subject_id, title, owner_member_id, status)
+           values ($1, 'Collect prescription', $2, 'open') returning id`,
+          [subjectL, helperMemberId],
+        )
+      ).rows[0]!.id;
+
+      // The sole admin cannot leave while another member remains.
+      await expect(
+        asUser(leadId, (c) => c.query(`select leave_workspace($1)`, [wsL])),
+      ).rejects.toThrow();
+
+      // Helper leaves on their own.
+      await asUser(helperId, (c) => c.query(`select leave_workspace($1)`, [wsL]));
+      expect(
+        (await pool.query(`select 1 from family_member where id = $1`, [helperMemberId])).rows,
+      ).toEqual([]);
+      // The duty stays; it simply loses its owner.
+      const duty = (
+        await pool.query<{ owner_member_id: string | null }>(
+          `select owner_member_id from duty where id = $1`,
+          [dutyId],
+        )
+      ).rows[0];
+      expect(duty).toBeDefined();
+      expect(duty!.owner_member_id).toBeNull();
+      // The departure is on the record.
+      expect(
+        (
+          await pool.query(
+            `select 1 from access_log where workspace_id = $1 and action = 'left_workspace'`,
+            [wsL],
+          )
+        ).rows,
+      ).toHaveLength(1);
+
+      // Now Lead is the last member — they may leave, emptying the space.
+      await asUser(leadId, (c) => c.query(`select leave_workspace($1)`, [wsL]));
+      expect(
+        (await pool.query(`select 1 from family_member where workspace_id = $1`, [wsL])).rows,
+      ).toEqual([]);
+    });
+
+    it("an outsider cannot leave a space they were never in", async () => {
+      await expect(
+        asUser(bobId, (c) => c.query(`select leave_workspace($1)`, [wsA])),
+      ).rejects.toThrow();
+      // Alice is still there — nothing was touched.
+      expect(
+        (await pool.query(`select 1 from family_member where workspace_id = $1 and user_id = $2`, [wsA, aliceId])).rows,
+      ).toHaveLength(1);
+    });
+  });
 });
 
 if (!url) {
