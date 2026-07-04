@@ -5,12 +5,14 @@ import {
   revokeConsentForm,
   switchWorkspaceForm,
   upgradePlanForm,
+  setReachPreferencesForm,
 } from "@/lib/actions/forms";
 import { PLANS, type PlanId } from "@kinos/config";
 import { Eyebrow, Panel, Pill } from "@kinos/ui";
 
 import { EnableNotifications } from "@/components/enable-notifications";
 import { InviteLink } from "@/components/invite-link";
+import { withUser } from "@kinos/db";
 import { listMemberships, requireFamilyContext } from "@/lib/data/context";
 import {
   listAccessLog,
@@ -40,6 +42,17 @@ export default async function SettingsPage({
   const planResult = (await searchParams)?.plan;
   const ctx = await requireFamilyContext();
   const isAdmin = ctx.member.role === "admin";
+  const reach = await withUser(ctx.userId, async (db) => {
+    const r = await db.query(
+      `select phone, channel_prefs from family_member where id = $1`,
+      [ctx.member.id],
+    );
+    return (r.rows[0] ?? { phone: null, channel_prefs: {} }) as {
+      phone: string | null;
+      channel_prefs: { push?: boolean; email?: boolean; whatsapp?: boolean; sms?: boolean };
+    };
+  });
+  const cp = { push: true, email: true, whatsapp: false, sms: false, ...(reach.channel_prefs ?? {}) };
   const [members, invitations, grants, subjects, accessLog, memberships] = await Promise.all([
     listMembers(ctx.userId),
     isAdmin ? listInvitations(ctx.userId) : Promise.resolve([]),
@@ -160,6 +173,44 @@ export default async function SettingsPage({
           unless it&apos;s urgent.
         </p>
         <EnableNotifications vapidPublicKey={process.env.WEB_PUSH_VAPID_PUBLIC_KEY ?? null} />
+      </Panel>
+
+      {/* how you're reached */}
+      <Panel className="flex flex-col gap-3">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+          How you&apos;re reached
+        </h2>
+        <p className="text-[13px] leading-relaxed text-ink-soft">
+          Add a number for WhatsApp or SMS, and choose which channels may reach you.
+          The family only ever hears from KinOS when something genuinely needs someone.
+        </p>
+        <form action={setReachPreferencesForm} className="mt-1 flex flex-col gap-3">
+          <input
+            name="phone"
+            type="tel"
+            defaultValue={reach.phone ?? ""}
+            placeholder="Phone, e.g. +263 77 123 4567"
+            className={inputClass}
+          />
+          <div className="flex flex-wrap gap-4 text-[13px] text-ink-soft">
+            {([
+              ["push", "Push"],
+              ["email", "Email"],
+              ["whatsapp", "WhatsApp"],
+              ["sms", "SMS"],
+            ] as const).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-1.5">
+                <input type="checkbox" name={key} defaultChecked={cp[key]} /> {label}
+              </label>
+            ))}
+          </div>
+          <p className="font-mono text-[10.5px] text-ink-faint">
+            SMS is used only for urgent things. A phone number is needed for WhatsApp and SMS.
+          </p>
+          <button className="self-start rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">
+            Save how I&apos;m reached
+          </button>
+        </form>
       </Panel>
 
       {/* members */}
