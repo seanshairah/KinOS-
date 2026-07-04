@@ -67,3 +67,44 @@ export async function setReachPreferencesAction(formData: FormData): Promise<Act
   revalidatePath("/app/settings");
   return { ok: true };
 }
+
+/**
+ * Quiet hours for the whole family space. During quiet hours KinOS holds
+ * non-urgent escalations until morning; urgent things never wait. Admins
+ * only — it shapes how everyone is reached.
+ */
+const quietSchema = z.object({
+  enabled: z.boolean(),
+  start: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  end: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+});
+
+export async function setQuietHoursAction(formData: FormData): Promise<ActionResult> {
+  const ctx = await requireFamilyContext();
+  if (ctx.member.role !== "admin") {
+    return { ok: false, message: "Only an admin can set the family's quiet hours." };
+  }
+  const parsed = quietSchema.safeParse({
+    enabled: formData.has("enabled"),
+    start: formData.get("start") || undefined,
+    end: formData.get("end") || undefined,
+  });
+  if (!parsed.success) return { ok: false, message: "Check the times (HH:MM)." };
+
+  const quiet = {
+    enabled: parsed.data.enabled,
+    start: parsed.data.start ?? "21:00",
+    end: parsed.data.end ?? "07:00",
+  };
+  await withUser(ctx.userId, async (db) => {
+    await db.query(
+      `insert into escalation_rule (workspace_id, kind, quiet_hours)
+       values ($1, 'default', $2)
+       on conflict (workspace_id, kind)
+       do update set quiet_hours = excluded.quiet_hours`,
+      [ctx.workspace.id, JSON.stringify(quiet)],
+    );
+  });
+  revalidatePath("/app/settings");
+  return { ok: true };
+}

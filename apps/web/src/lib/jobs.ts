@@ -203,12 +203,34 @@ export async function escalationSweep(): Promise<number> {
        where a.status = 'open' and a.escalate_at is not null and a.escalate_at < now()`,
     );
 
+    // Per-workspace quiet hours + ladder, cached across this sweep.
+    const rules = new Map<string, { start: string; end: string } | null>();
+    async function quietFor(workspaceId: string): Promise<{ start: string; end: string } | null> {
+      if (rules.has(workspaceId)) return rules.get(workspaceId)!;
+      const r = await db.query(
+        `select quiet_hours from escalation_rule where workspace_id = $1 and kind = 'default'`,
+        [workspaceId],
+      );
+      const row = r.rows[0];
+      let value: { start: string; end: string } | null;
+      if (!row) {
+        // No rule configured yet — the calm default: quiet 21:00–07:00.
+        value = { start: "21:00", end: "07:00" };
+      } else {
+        const q = row.quiet_hours as { start?: string; end?: string; enabled?: boolean } | null;
+        value = q && q.enabled !== false && q.start && q.end ? { start: q.start, end: q.end } : null;
+      }
+      rules.set(workspaceId, value);
+      return value;
+    }
+
     for (const event of due.rows) {
+      const quiet = await quietFor(event.workspace_id);
       const decision = decideEscalation({
         severity: event.severity,
         createdAt: new Date(event.created_at),
         now: new Date(),
-        quietHours: { start: "21:00", end: "07:00", timezone: event.timezone },
+        quietHours: quiet ? { start: quiet.start, end: quiet.end, timezone: event.timezone } : null,
       });
 
       if (decision.notifyNow) {
