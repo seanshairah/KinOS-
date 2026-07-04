@@ -19,6 +19,7 @@ import { logDoseAction } from "./signals";
 import { addExpenseAction, contributeAction, createPotAction } from "./money";
 import { addRecordItemAction } from "./memory";
 import { setHealthSharingAction } from "./health";
+import { setReachPreferencesAction } from "./notifications";
 import { upgradePlanAction } from "./billing";
 import {
   createOrbitAction,
@@ -92,4 +93,7 @@ export async function deleteWorkspaceForm(fd: FormData): Promise<void> {
 }
 export async function switchWorkspaceForm(fd: FormData): Promise<void> {
   await switchWorkspaceAction(fd);
+}
+export async function setReachPreferencesForm(fd: FormData): Promise<void> {
+  await setReachPreferencesAction(fd);
 }
