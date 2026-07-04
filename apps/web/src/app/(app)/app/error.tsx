@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { captureException } from "@/lib/observability";
 
 /** A room failed to load. Stay calm, offer the way back. */
 export default function AppError({
@@ -12,6 +13,7 @@ export default function AppError({
 }) {
   useEffect(() => {
     console.error("app room error", error.digest ?? error.message);
+    void captureException(error, { tag: "client-room" });
   }, [error]);
 
   return (

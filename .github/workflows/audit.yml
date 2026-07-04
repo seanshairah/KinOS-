@@ -1,0 +1,28 @@
+name: Dependency audit
+
+# The 0-vulnerability posture from the production-stack audit shouldn't drift
+# quietly between releases. This runs every Monday and on demand, failing only
+# on high/critical advisories so a newly-disclosed CVE surfaces as a red check
+# instead of waiting to be noticed. It does not gate PRs — it's a heartbeat.
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays, 07:00 UTC
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: pnpm audit (high · critical)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Audit production dependency tree
+        run: pnpm audit --audit-level high --prod
+      - name: Audit full dependency tree (advisory)
+        run: pnpm audit --audit-level high || true
