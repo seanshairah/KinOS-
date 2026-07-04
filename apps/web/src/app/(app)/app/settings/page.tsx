@@ -2,6 +2,7 @@ import {
   grantConsentForm,
   inviteMemberForm,
   deleteWorkspaceForm,
+  leaveWorkspaceForm,
   revokeConsentForm,
   switchWorkspaceForm,
   upgradePlanForm,
@@ -421,36 +422,69 @@ export default async function SettingsPage({
         </>
       )}
 
-      {isAdmin && (
-        <Panel className="flex flex-col gap-3 border-urgent/30">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-urgent">
-            Leaving KinOS
-          </h2>
-          <p className="max-w-[60ch] text-[13px] leading-relaxed text-ink-soft">
-            Deleting the family space removes every orbit, signal, record, health
-            reading, and money entry for good — content leaves production within 30
-            days and backups within 90, as the Privacy Policy describes. Export the
-            record first if you want to keep it.
-          </p>
-          <details>
-            <summary className="cursor-pointer text-[12.5px] font-medium text-urgent">
-              Delete this family space
-            </summary>
-            <form action={deleteWorkspaceForm} className="mt-3 flex flex-wrap items-center gap-2">
-              <input
-                name="confirmName"
-                required
-                placeholder={`Type "${ctx.workspace.name}" to confirm`}
-                className={inputClass}
-                autoComplete="off"
-              />
-              <button className="rounded-pill border-2 border-urgent/50 bg-urgent-bg px-4 py-2 text-[12.5px] font-semibold text-urgent">
-                Delete forever
-              </button>
-            </form>
-          </details>
-        </Panel>
-      )}
+      <Panel className="flex flex-col gap-3 border-urgent/30">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-urgent">
+          Leaving KinOS
+        </h2>
+        <p className="max-w-[60ch] text-[13px] leading-relaxed text-ink-soft">
+          You can step out of this family space whenever you like. Your account
+          stays; only your place in this space ends. Work you owned — duties,
+          rides, notes — is left for someone else to pick up, and the family
+          keeps its history.
+        </p>
+        <details>
+          <summary className="cursor-pointer text-[12.5px] font-medium text-urgent">
+            Leave this family space
+          </summary>
+          <form action={leaveWorkspaceForm} className="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              name="confirmName"
+              required
+              placeholder={`Type "${ctx.workspace.name}" to confirm`}
+              className={inputClass}
+              autoComplete="off"
+            />
+            <button className="rounded-pill border-2 border-urgent/50 bg-urgent-bg px-4 py-2 text-[12.5px] font-semibold text-urgent">
+              Leave the space
+            </button>
+          </form>
+          {isAdmin && (
+            <p className="mt-2 max-w-[56ch] text-[11.5px] leading-relaxed text-ink-faint">
+              You&apos;re an admin. If you&apos;re the only one, make another member
+              an admin first — otherwise the space would be left with no one to
+              look after it.
+            </p>
+          )}
+        </details>
+
+        {isAdmin && (
+          <>
+            <p className="mt-2 max-w-[60ch] text-[13px] leading-relaxed text-ink-soft">
+              Deleting the family space removes every orbit, signal, record, health
+              reading, and money entry for good — content leaves production within 30
+              days and backups within 90, as the Privacy Policy describes. Export the
+              record first if you want to keep it.
+            </p>
+            <details>
+              <summary className="cursor-pointer text-[12.5px] font-medium text-urgent">
+                Delete this family space
+              </summary>
+              <form action={deleteWorkspaceForm} className="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                  name="confirmName"
+                  required
+                  placeholder={`Type "${ctx.workspace.name}" to confirm`}
+                  className={inputClass}
+                  autoComplete="off"
+                />
+                <button className="rounded-pill border-2 border-urgent/50 bg-urgent-bg px-4 py-2 text-[12.5px] font-semibold text-urgent">
+                  Delete forever
+                </button>
+              </form>
+            </details>
+          </>
+        )}
+      </Panel>
     </div>
   );
 }
