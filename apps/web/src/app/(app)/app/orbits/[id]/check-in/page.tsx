@@ -3,6 +3,7 @@ import { withUser } from "@kinos/db";
 import { Eyebrow, OrbitAvatar } from "@kinos/ui";
 import { OfflineCheckinForm } from "@/components/offline-checkin-form";
 import { requireFamilyContext } from "@/lib/data/context";
+import { getT } from "@/lib/i18n";
 
 /**
  * The check-in — dead simple by design, sized for elderly hands.
@@ -24,19 +25,42 @@ export default async function CheckinPage({
   });
   if (!subject) notFound();
 
+  const { t } = await getT();
+
   return (
     <div className="mx-auto max-w-[560px]">
       <div className="flex items-center gap-4">
         <OrbitAvatar name={subject.display_name} size={52} />
         <div>
-          <Eyebrow>Check-in</Eyebrow>
+          <Eyebrow>{t("checkin.title")}</Eyebrow>
           <h1 className="mt-1 font-serif text-[30px] font-light leading-tight">
-            How is {subject.display_name} today?
+            {t("checkin.how", { name: subject.display_name })}
           </h1>
         </div>
       </div>
 
-      <OfflineCheckinForm subjectId={subject.id} subjectName={subject.display_name} />
+      <OfflineCheckinForm
+        subjectId={subject.id}
+        subjectName={subject.display_name}
+        labels={{
+          moodGood: t("mood.good"),
+          moodOkay: t("mood.okay"),
+          moodLow: t("mood.low"),
+          moodUnwell: t("mood.unwell"),
+          eatenQ: t("eaten.q"),
+          eatenYes: t("eaten.yes"),
+          eatenNo: t("eaten.no"),
+          notePrompt: t("note.prompt"),
+          notePlaceholder: t("note.placeholder"),
+          send: t("checkin.send"),
+          sending: t("checkin.sending"),
+          saved: t("checkin.saved"),
+          offlineNote: t("checkin.offlineNote"),
+          pick: t("checkin.pick"),
+          cantHold: t("checkin.cantHold"),
+          didntSend: t("checkin.didntSend"),
+        }}
+      />
     </div>
   );
 }

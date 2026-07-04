@@ -5,8 +5,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { withUser, withService } from "@kinos/db";
-import { PLANS, orbitCap, type PlanId } from "@kinos/config";
+import { PLANS, orbitCap, isLocale, type PlanId } from "@kinos/config";
 import { requireFamilyContext, requireUserId } from "../data/context";
+import { LOCALE_COOKIE } from "../i18n";
 
 const nameSchema = z.string().trim().min(1).max(80);
 
@@ -317,6 +318,24 @@ export async function leaveWorkspaceAction(formData: FormData): Promise<ActionRe
   }
   (await cookies()).delete("kinos_ws");
   redirect("/app");
+}
+
+/**
+ * Set the language KinOS speaks to this person in. A per-browser choice held
+ * in a cookie — no account change, so it applies immediately and travels with
+ * the device, which is right when several family members share one phone.
+ */
+export async function setLocaleAction(formData: FormData): Promise<void> {
+  const locale = formData.get("locale");
+  if (isLocale(locale)) {
+    (await cookies()).set(LOCALE_COOKIE, locale, {
+      httpOnly: false, // read by the client for offline/error surfaces too
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
+  redirect("/app/settings");
 }
 
 /**

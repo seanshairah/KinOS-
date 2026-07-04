@@ -62,6 +62,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
+    // Document language stays English at the root so the marketing pages stay
+    // static and CDN-cached. Per-locale content is translated via lib/i18n;
+    // reflecting the chosen locale in <html lang> is a later, separate step.
     <html lang="en" dir="ltr">
       <body
         className={`${newsreader.variable} ${inter.variable} ${plexMono.variable}`}

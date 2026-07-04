@@ -81,6 +81,11 @@ test("a family activates: workspace → orbit → invite → check-in → duty",
   await page.getByText("Assign a duty").click();
   await page.getByPlaceholder("e.g. Buy the week's groceries").fill("Buy groceries for the week");
   await page.getByRole("button", { name: "Assign", exact: true }).click();
+  // The duty is created via a server action; assert it *persisted* by loading
+  // the Orbit fresh. This avoids a race on the live re-render (the action
+  // succeeds, but its client revalidation can arrive after a still-settling
+  // navigation), while still proving the duty was really written.
+  await page.reload();
   await expect(page.getByText("Buy groceries for the week")).toBeVisible();
 
   // The Today Room shows the living record, calmly.
