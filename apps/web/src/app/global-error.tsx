@@ -1,10 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
+import { captureException } from "@/lib/observability";
+
 /**
  * The last-resort boundary. If the shell itself fails, the family still
  * sees calm — and one honest button.
  */
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => {
+    void captureException(error, { tag: "client-root" });
+  }, [error]);
   return (
     <html lang="en">
       <body
