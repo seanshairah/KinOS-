@@ -89,4 +89,31 @@ export const api = {
   attention: (token: string) => call<{ attention: AttentionItem[] }>("/api/v1/attention", { token }),
   actOnAttention: (token: string, id: string, mode: "resolved" | "ack" | "snoozed") =>
     call<{ ok: true }>(`/api/v1/attention/${id}`, { method: "POST", body: { mode }, token }),
+  relayHealthReadings: (
+    token: string,
+    subjectId: string,
+    source: "apple_health" | "health_connect",
+    readings: HealthReadingPayload[],
+  ) =>
+    call<{ ok: true; stored: number; observations: number; attentionRaised: number }>(
+      "/api/v1/health/readings",
+      { method: "POST", body: { subjectId, source, readings }, token },
+    ),
 };
+
+/** The exact shape one reading takes on /api/v1/health/readings. */
+export interface HealthReadingPayload {
+  metric:
+    | "blood_pressure"
+    | "heart_rate"
+    | "sleep_minutes"
+    | "steps"
+    | "weight"
+    | "glucose"
+    | "spo2";
+  value: Record<string, number>;
+  unit?: string;
+  takenAt?: string;
+  externalId?: string;
+  device?: Record<string, unknown>;
+}
