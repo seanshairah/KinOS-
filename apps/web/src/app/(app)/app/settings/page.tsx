@@ -9,9 +9,10 @@ import {
   setReachPreferencesForm,
   setQuietHoursForm,
   setLocaleForm,
+  setComfortForm,
 } from "@/lib/actions/forms";
 import { PLANS, LOCALE_META, SUPPORTED_LOCALES, type PlanId } from "@kinos/config";
-import { getLocale } from "@/lib/i18n";
+import { getComfort, getLocale } from "@/lib/i18n";
 import { Eyebrow, Panel, Pill } from "@kinos/ui";
 
 import { EnableNotifications } from "@/components/enable-notifications";
@@ -79,6 +80,7 @@ export default async function SettingsPage({
   const planId = (ctx.workspace.plan_id in PLANS ? ctx.workspace.plan_id : "free") as PlanId;
   const plan = PLANS[planId];
   const locale = await getLocale();
+  const comfort = await getComfort();
 
   return (
     <div className="flex flex-col gap-6">
@@ -248,6 +250,26 @@ export default async function SettingsPage({
           </select>
           <button className="rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">
             Save language
+          </button>
+        </form>
+      </Panel>
+
+      {/* comfort */}
+      <Panel className="flex flex-col gap-3">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+          Comfort
+        </h2>
+        <p className="max-w-[56ch] text-[13px] leading-relaxed text-ink-soft">
+          Larger text, stronger contrast, clearer lines — for eyes that prefer
+          things a step bigger. A per-device choice, like the language: the
+          lounge tablet can hold it while a phone stays compact.
+        </p>
+        <form action={setComfortForm} className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-1.5 text-[13px] text-ink-soft">
+            <input type="checkbox" name="comfort" defaultChecked={comfort} /> Comfort mode
+          </label>
+          <button className="rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">
+            Save
           </button>
         </form>
       </Panel>

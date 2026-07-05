@@ -16,9 +16,13 @@ export const LOCALE_COOKIE = "kinos_locale";
 const en = {
   "nav.today": "Today",
   "nav.orbits": "Orbits",
-  "nav.attention": "Attention",
-  "nav.record": "Record",
-  "nav.money": "Money",
+  "nav.attention": "Attention Needed",
+  "nav.duties": "Duties",
+  "nav.signals": "Life Signals",
+  "nav.record": "Family Record",
+  "nav.money": "Money Pot",
+  "nav.emergency": "Emergency",
+  "nav.admin": "Admin",
   "nav.settings": "Settings",
   "checkin.title": "Check-in",
   "checkin.how": "How is {name} today?",
@@ -53,9 +57,13 @@ export type MessageKey = keyof typeof en;
 
 const sn: Partial<Record<MessageKey, string>> = {
   "nav.today": "Nhasi",
-  "nav.attention": "Nyevero",
-  "nav.record": "Zvinyorwa",
+  "nav.attention": "Zvinoda kutariswa",
+  "nav.duties": "Mabasa",
+  "nav.signals": "Zviratidzo",
+  "nav.record": "Zvinyorwa zvemhuri",
   "nav.money": "Mari",
+  "nav.emergency": "Njodzi",
+  "nav.admin": "Marongero",
   "nav.settings": "Marongero",
   "checkin.title": "Kukwazisa",
   "checkin.how": "{name} ari sei nhasi?",
@@ -88,9 +96,13 @@ const sn: Partial<Record<MessageKey, string>> = {
 
 const nd: Partial<Record<MessageKey, string>> = {
   "nav.today": "Lamuhla",
-  "nav.attention": "Isixwayiso",
-  "nav.record": "Imibhalo",
+  "nav.attention": "Okudinga ukunakwa",
+  "nav.duties": "Imisebenzi",
+  "nav.signals": "Izimpawu",
+  "nav.record": "Imibhalo yomndeni",
   "nav.money": "Imali",
+  "nav.emergency": "Ingozi",
+  "nav.admin": "Izilungiselelo",
   "nav.settings": "Izilungiselelo",
   "checkin.title": "Ukubingelela",
   "checkin.how": "Unjani u-{name} lamuhla?",
@@ -143,6 +155,17 @@ export function t(
 export async function getLocale(): Promise<Locale> {
   const value = (await cookies()).get(LOCALE_COOKIE)?.value;
   return isLocale(value) ? value : DEFAULT_LOCALE;
+}
+
+/**
+ * Comfort mode — larger text, stronger contrast, clearer lines. A
+ * per-device choice like the locale: the family tablet in the lounge can
+ * hold it while a daughter's phone stays compact.
+ */
+export const COMFORT_COOKIE = "kinos_comfort";
+
+export async function getComfort(): Promise<boolean> {
+  return (await cookies()).get(COMFORT_COOKIE)?.value === "1";
 }
 
 /** A translator bound to the current request's locale — `const tr = await getT()`. */

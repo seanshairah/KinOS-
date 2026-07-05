@@ -53,3 +53,28 @@ body {
 
   color: var(--ink);
 }
+
+/* ------------------------------------------------------------------ */
+/* Keyboard focus is always visible — a halo ring, never an outline    */
+/* removed. One rule, every interactive element.                       */
+:focus-visible {
+  outline: 2px solid var(--dusk-2);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Comfort mode — for eyes that have read more years than ours.        */
+/* Everything a step larger via zoom (the app is sized in px), and the */
+/* quiet greys lifted so soft text stays soft in spirit, readable in   */
+/* fact. A per-device choice, toggled in Settings.                     */
+.comfort {
+  zoom: 1.16;
+}
+.comfort.theme-dusk,
+.comfort .theme-dusk {
+  --ink-soft: #dcdaee;
+  --ink-faint: #b5b3d8;
+  --line: rgba(169, 167, 224, 0.3);
+  --line-2: rgba(169, 167, 224, 0.5);
+}

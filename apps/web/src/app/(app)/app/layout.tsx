@@ -6,12 +6,15 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 import { OrbitMark, Wordmark } from "@kinos/ui";
 import { getPool, isDatabaseConfigured } from "@kinos/db";
+import { LOCALE_META } from "@kinos/config";
 import { AppNav } from "@/components/app-nav";
 import { DuskField } from "@/components/dusk-field";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { RegisterServiceWorker } from "@/components/register-sw";
+import { HtmlLang } from "@/components/html-lang";
 import { currentUserId, signOut } from "@/lib/auth";
 import { getFamilyContext } from "@/lib/data/context";
+import { getComfort, getT } from "@/lib/i18n";
 import { countOpenAttention } from "@/lib/data/attention";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +25,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const ctx = await getFamilyContext(userId);
   const attentionCount = ctx ? await countOpenAttention(userId) : 0;
   const anyAttention = attentionCount > 0;
+  const { locale, t } = await getT();
+  const comfort = await getComfort();
 
   // A wandering visitor sees everything and can touch nothing —
   // the database enforces it; this banner just says so, warmly.
@@ -32,18 +37,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isVisitor = Boolean(visitor.rows[0]);
 
   const items = [
-    { href: "/app", label: "Today" },
-    { href: "/app/attention", label: "Attention Needed", badge: attentionCount || undefined },
-    { href: "/app/duties", label: "Duties" },
-    { href: "/app/signals", label: "Life Signals" },
-    { href: "/app/money", label: "Money Pot" },
-    { href: "/app/record", label: "Family Record" },
-    { href: "/app/emergency", label: "Emergency" },
-    { href: "/app/settings", label: "Admin" },
+    { href: "/app", label: t("nav.today") },
+    { href: "/app/attention", label: t("nav.attention"), badge: attentionCount || undefined },
+    { href: "/app/duties", label: t("nav.duties") },
+    { href: "/app/signals", label: t("nav.signals") },
+    { href: "/app/money", label: t("nav.money") },
+    { href: "/app/record", label: t("nav.record") },
+    { href: "/app/emergency", label: t("nav.emergency") },
+    { href: "/app/settings", label: t("nav.admin") },
   ];
 
   return (
-    <div className="theme-dusk relative min-h-screen text-ink">
+    <div className={`${comfort ? "comfort " : ""}theme-dusk relative min-h-screen text-ink`}>
+      <HtmlLang lang={LOCALE_META[locale].htmlLang} />
       {/* the same night the story ends in — the family space lives there */}
       <div
         aria-hidden
