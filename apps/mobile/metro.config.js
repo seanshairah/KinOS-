@@ -1,13 +1,16 @@
-// Metro in a pnpm monorepo. pnpm's isolated node_modules (symlinks into a
-// virtual .pnpm store) let Metro's default resolver land a bare `react` import
-// on the types-only @types/react package (whose `main` is empty), which has no
-// runtime code — so bundling dies. The fix must be OS-agnostic (Windows uses
-// backslash paths), so we do it in the resolver, not with a slash-sensitive
-// path regex:
-//   1. resolveRequest forces `react`/`react-native` to THIS app's own copy, so
-//      Metro never considers @types for them;
-//   2. blockList (matching either path separator) keeps every @types/* package
-//      out of the bundle entirely — they are compile-time only.
+// Metro in a pnpm monorepo. Two independent things have to be true:
+//
+//  1. Metro must walk pnpm's nested store to resolve transitive deps — e.g.
+//     `expo` importing `expo-modules-core`, which lives beside it inside
+//     .pnpm/expo@…/node_modules. So hierarchical lookup stays ON (the default);
+//     turning it off breaks those nested resolutions on strict pnpm layouts
+//     (notably Windows, where fewer packages are hoisted to the root).
+//
+//  2. A bare `react` import must not land on the types-only @types/react
+//     package (empty `main`, no runtime code). We force `react`/`react-native`
+//     to this app's own copy in resolveRequest — by module name, so it's
+//     separator-independent (Windows backslash paths and POSIX alike) — and
+//     also block @types/* from the bundle as defence in depth.
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
 
@@ -20,13 +23,9 @@ config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),
 ];
-config.resolver.disableHierarchicalLookup = true;
 config.resolver.unstable_enableSymlinks = true;
-
-// Cross-platform: match /@types/ on POSIX and \@types\ on Windows.
 config.resolver.blockList = [/[\\/]@types[\\/]/];
 
-// Force the one true copy of the runtime packages, separator-independent.
 const forcedRoots = {
   react: path.join(projectRoot, "node_modules", "react"),
   "react-native": path.join(projectRoot, "node_modules", "react-native"),
