@@ -7,7 +7,7 @@ import { z } from "zod";
 import { withUser, withService } from "@kinos/db";
 import { PLANS, orbitCap, isLocale, type PlanId } from "@kinos/config";
 import { requireFamilyContext, requireUserId } from "../data/context";
-import { LOCALE_COOKIE } from "../i18n";
+import { COMFORT_COOKIE, LOCALE_COOKIE } from "../i18n";
 
 const nameSchema = z.string().trim().min(1).max(80);
 
@@ -334,6 +334,25 @@ export async function setLocaleAction(formData: FormData): Promise<void> {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
     });
+  }
+  redirect("/app/settings");
+}
+
+/**
+ * Comfort mode — larger text, stronger contrast. A per-device choice like
+ * the language: the lounge tablet can hold it while a phone stays compact.
+ */
+export async function setComfortAction(formData: FormData): Promise<void> {
+  const store = await cookies();
+  if (formData.has("comfort")) {
+    store.set(COMFORT_COOKIE, "1", {
+      httpOnly: false,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  } else {
+    store.delete(COMFORT_COOKIE);
   }
   redirect("/app/settings");
 }
