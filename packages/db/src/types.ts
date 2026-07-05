@@ -94,6 +94,9 @@ export interface CareSubjectRow {
   timezone: string;
   expected_checkin_by: string | null;
   expected_visit_every_hours: number | null;
+  phone: string | null;
+  sms_checkin: boolean;
+  last_sms_prompt_on: string | null;
   created_at: string;
 }
 

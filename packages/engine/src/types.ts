@@ -23,6 +23,7 @@ export type SignalType = (typeof SIGNAL_TYPES)[number];
 
 export const SIGNAL_SOURCES = [
   "manual_checkin",
+  "sms_checkin",
   "caregiver_voice_note",
   "receipt_scan",
   "document_upload",
