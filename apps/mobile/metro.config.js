@@ -1,16 +1,17 @@
-// Metro in a pnpm monorepo. Two independent things have to be true:
+// Metro in a pnpm monorepo. pnpm's isolated, symlinked store trips up Metro's
+// resolver in two ways; both are handled here without changing the install
+// layout or any dependency versions:
 //
-//  1. Metro must walk pnpm's nested store to resolve transitive deps — e.g.
-//     `expo` importing `expo-modules-core`, which lives beside it inside
-//     .pnpm/expo@…/node_modules. So hierarchical lookup stays ON (the default);
-//     turning it off breaks those nested resolutions on strict pnpm layouts
-//     (notably Windows, where fewer packages are hoisted to the root).
+//  1. A bare `react` import can land on the types-only @types/react package
+//     (empty `main`, no runtime code). We force `react`/`react-native` to this
+//     app's own copy by module name — separator-independent, so it holds on
+//     Windows backslash paths and POSIX alike — and block @types/* outright.
 //
-//  2. A bare `react` import must not land on the types-only @types/react
-//     package (empty `main`, no runtime code). We force `react`/`react-native`
-//     to this app's own copy in resolveRequest — by module name, so it's
-//     separator-independent (Windows backslash paths and POSIX alike) — and
-//     also block @types/* from the bundle as defence in depth.
+//  2. A transitive like `expo-modules-core` (a dep of `expo`) lives nested in
+//     .pnpm/expo@…/node_modules. Metro's own walk finds it on hoisted layouts
+//     but can miss it on strict ones (notably Windows). So on any resolution
+//     miss we fall back to Node's resolver from the importing file, which
+//     follows pnpm's symlinks the same way on every OS.
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
 
@@ -35,6 +36,22 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (Object.prototype.hasOwnProperty.call(forcedRoots, moduleName)) {
     return { type: "sourceFile", filePath: require.resolve(forcedRoots[moduleName]) };
   }
-  return (defaultResolveRequest ?? context.resolveRequest)(context, moduleName, platform);
+  try {
+    return (defaultResolveRequest ?? context.resolveRequest)(context, moduleName, platform);
+  } catch (err) {
+    // Bare package that Metro couldn't place in the pnpm store — resolve it
+    // with Node from the importing file's directory (follows pnpm symlinks
+    // identically on every OS). Relative/absolute imports are Metro's job.
+    if (moduleName.startsWith(".") || moduleName.startsWith("/")) throw err;
+    try {
+      const fromDir = path.dirname(context.originModulePath);
+      return {
+        type: "sourceFile",
+        filePath: require.resolve(moduleName, { paths: [fromDir, projectRoot] }),
+      };
+    } catch {
+      throw err;
+    }
+  }
 };
 module.exports = config;
