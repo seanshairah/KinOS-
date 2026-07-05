@@ -35,8 +35,27 @@ export function MiniOrbit({
       style={{ width: size, height: size }}
     >
       <svg viewBox="0 0 64 64" className="absolute inset-0 h-full w-full overflow-visible">
+        <defs>
+          <radialGradient id={`mini-halo-${seed}`}>
+            <stop offset="0%" stopColor="#A9A7E0" stopOpacity=".2" />
+            <stop offset="100%" stopColor="#A9A7E0" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        {/* the sky pools softly behind the little system */}
+        <circle cx="32" cy="32" r="30" fill={`url(#mini-halo-${seed})`} />
         <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(169,167,224,.28)" strokeWidth="1" />
         <circle cx="32" cy="32" r="16" fill="none" stroke="rgba(169,167,224,.38)" strokeWidth="1" />
+        {/* light travelling the outer path */}
+        <circle
+          cx="32"
+          cy="32"
+          r="26"
+          fill="none"
+          stroke="rgba(237,235,246,.55)"
+          strokeWidth="1.2"
+          className="ring-shimmer"
+          style={{ animationDelay: `${(seed % 5) * -7}s` }}
+        />
         {/* breathing centre — the person */}
         <circle cx="32" cy="32" r="10" fill="rgba(237,235,246,.14)" className="breathe" />
         <circle cx="32" cy="32" r="4.5" fill="#FEFCF9" />

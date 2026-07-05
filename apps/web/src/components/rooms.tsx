@@ -35,6 +35,14 @@ export function RoomHeader({
       </h1>
       {sub && <p className="mt-2 max-w-[52ch] text-[14px] leading-[1.6] text-ink-soft">{sub}</p>}
       {children}
+      <div
+        aria-hidden
+        className="mt-5 h-px w-full"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(169,167,224,.35), rgba(169,167,224,.08) 55%, transparent)",
+        }}
+      />
     </div>
   );
 }
@@ -54,7 +62,7 @@ export function RoomSection({
 }) {
   return (
     <section
-      className={`room-enter rounded-orbit border border-line bg-paper-2 p-5 shadow-card backdrop-blur-[2px] md:p-6 ${className}`}
+      className={`room-enter top-light glass-lift rounded-orbit border border-line bg-gradient-to-b from-paper-3 to-paper-2 p-5 shadow-card backdrop-blur-[6px] md:p-6 ${className}`}
       style={delay ? { animationDelay: `${delay}ms` } : undefined}
     >
       {(title || action) && (
@@ -103,7 +111,7 @@ export function CalmEmpty({
   action?: ReactNode;
 }) {
   return (
-    <div className="room-enter relative flex flex-col items-center gap-4 overflow-hidden rounded-orbit border border-line bg-paper-2 px-6 py-12 text-center">
+    <div className="room-enter top-light relative flex flex-col items-center gap-4 overflow-hidden rounded-orbit border border-line bg-gradient-to-b from-paper-3 to-paper-2 px-6 py-12 text-center backdrop-blur-[6px]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -141,7 +149,7 @@ export function SignalRow({
   meta?: string;
 }) {
   return (
-    <div className="flex items-baseline gap-3 border-t border-line py-2.5 first:border-t-0">
+    <div className="-mx-2 flex items-baseline gap-3 rounded-card border-t border-line px-2 py-2.5 transition-colors duration-300 first:border-t-0 hover:bg-halo/[.05]">
       <span
         aria-hidden
         className="relative top-[-2px] h-[6px] w-[6px] flex-none rounded-full"
@@ -169,14 +177,18 @@ export function PaperBrief({
   return (
     <section
       className="room-enter relative overflow-hidden rounded-orbit p-6 shadow-float md:p-7"
-      style={{ background: "#FBF8F3", animationDelay: `${delay}ms` }}
+      style={{
+        background: "linear-gradient(160deg, #FDFBF7 0%, #FBF8F3 55%, #F8F4EC 100%)",
+        animationDelay: `${delay}ms`,
+      }}
     >
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
-        style={{ background: "radial-gradient(80% 60% at 85% 0%, rgba(169,167,224,.14), transparent 60%)" }}
+        style={{ background: "radial-gradient(80% 60% at 85% 0%, rgba(169,167,224,.16), transparent 60%)" }}
       />
       <div className="grain" aria-hidden />
+      <div className="paper-sheen" aria-hidden />
       <div className="relative">
         <div className="flex items-center gap-2.5">
           <span aria-hidden className="h-2 w-2 rounded-full bg-ember/80" />
@@ -201,9 +213,22 @@ export function StatusWord({ status }: { status: OrbitStatus }) {
     attention: { word: "attention", cls: "border-ember-soft bg-attn-bg text-ember-text" },
     urgent: { word: "act now", cls: "border-urgent/40 bg-urgent-bg text-urgent" },
   };
+  const dot: Record<OrbitStatus, string> = {
+    steady: "#4E9E7E",
+    signal: "#A9A7E0",
+    attention: "#D98A3D",
+    urgent: "#E07A66",
+  };
   const s = map[status];
   return (
-    <span className={`rounded-pill border px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.12em] ${s.cls}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.12em] ${s.cls}`}
+    >
+      <span
+        aria-hidden
+        className="status-dot inline-block h-[5px] w-[5px] rounded-full"
+        style={{ background: dot[status], boxShadow: `0 0 6px ${dot[status]}` }}
+      />
       {s.word}
     </span>
   );

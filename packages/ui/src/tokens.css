@@ -47,6 +47,17 @@
   --serif: "Newsreader", Georgia, serif;
   --sans: "Inter", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* RGB triplets — these let Tailwind's alpha modifiers (bg-halo/20,
+     border-ember/30, gradient washes) actually compile. Without them a
+     whole layer of the design's intended glow silently never rendered. */
+  --ink-rgb: 33 29 25;
+  --halo-rgb: 169 167 224;
+  --ember-rgb: 217 138 61;
+  --calm-rgb: 78 158 126;
+  --urgent-rgb: 194 86 66;
+  --dusk-2-rgb: 78 75 144;
+  --dusk-3-rgb: 108 105 184;
 }
 
 ::selection {
@@ -100,8 +111,23 @@
   }
 }
 /* a room settling into place — content arrives like dusk, not like a popup */
+@keyframes room-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(5px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
 .room-enter {
-  animation: reveal-up 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  animation: room-arrive 0.65s cubic-bezier(0.22, 0.8, 0.3, 1) both;
 }
 /* quiet loading shimmer for glass skeletons */
 @keyframes room-shimmer {
@@ -399,6 +425,151 @@
   }
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Dusk 2.0 — the orbit vocabulary.                                    */
+
+/* The heartbeat ripple: a ring leaves the centre and dissolves —
+   presence, felt rather than announced. */
+@keyframes ripple-out {
+  0% {
+    transform: scale(0.25);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.12;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.orbit-ripple {
+  animation: ripple-out 7s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orbit-ripple.second {
+  animation-delay: 3.5s;
+}
+
+/* Ring shimmer — a sparse dash drifting along an orbit ring, so the
+   rings read as paths being travelled, not diagrams. */
+.ring-shimmer {
+  stroke-dasharray: 3 220;
+  stroke-linecap: round;
+  animation: orbit-spin 44s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ring-shimmer.reverse {
+  animation-direction: reverse;
+  animation-duration: 58s;
+}
+
+/* Comet tail — the faint streak a satellite leaves along its path. */
+.comet-tail {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 2px;
+  transform-origin: left center;
+  pointer-events: none;
+  border-radius: 999px;
+}
+
+/* Glass that answers the hand: border and inner light warm on hover. */
+.glass-lift {
+  transition:
+    transform 0.4s cubic-bezier(0.22, 0.8, 0.3, 1),
+    box-shadow 0.4s ease,
+    border-color 0.4s ease,
+    background-color 0.4s ease;
+}
+.glass-lift:hover {
+  transform: translateY(-2px);
+  border-color: rgba(169, 167, 224, 0.34);
+  box-shadow:
+    0 2px 4px rgba(12, 10, 30, 0.35),
+    0 24px 60px -28px rgba(12, 10, 30, 0.7),
+    0 0 34px -6px rgba(140, 138, 214, 0.22);
+}
+
+/* The top-light: a hair of starlight along a card's upper edge, so glass
+   surfaces read as lit from the sky above them. */
+.top-light {
+  position: relative;
+}
+.top-light::before {
+  content: "";
+  position: absolute;
+  inset: 0 8% auto 8%;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(237, 235, 246, 0.22), transparent);
+  pointer-events: none;
+}
+
+/* A slow sheen across warm paper — light moving over a letter. */
+@keyframes paper-sheen {
+  0%,
+  55%,
+  100% {
+    transform: translateX(-70%) skewX(-14deg);
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  85% {
+    transform: translateX(240%) skewX(-14deg);
+    opacity: 0;
+  }
+}
+.paper-sheen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 34%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+  animation: paper-sheen 14s ease-in-out infinite;
+}
+
+/* The status dot inside a StatusWord pill — quietly alive. */
+@keyframes status-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+.status-dot {
+  animation: status-breathe 3.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-ripple,
+  .ring-shimmer,
+  .paper-sheen,
+  .status-dot {
+    animation: none !important;
+  }
+  .orbit-ripple {
+    opacity: 0;
+  }
+  .paper-sheen {
+    opacity: 0;
+  }
+  .glass-lift,
+  .glass-lift:hover {
+    transform: none;
   }
 }
 
