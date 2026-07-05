@@ -258,6 +258,21 @@ export async function runDecideStage(subjectId: string): Promise<void> {
              and dedupe_key is not null`,
           [subjectId],
         );
+    // Steps counted so far in the subject's local day — null when no
+    // wearable reported, and absence of data is never alarming.
+    const steps = await db.query(
+          `select max((value->>'value')::numeric)::int as steps
+           from health_reading
+           where subject_id = $1 and metric = 'steps'
+             and (taken_at at time zone $2)::date = (now() at time zone $2)::date`,
+          [subjectId, row.timezone],
+        );
+    // When any family member last left a signal here, ever.
+    const lastTouch = await db.query(
+          `select max(occurred_at) as at from life_signal
+           where subject_id = $1 and member_id is not null`,
+          [subjectId],
+        );
 
     const ctx: AttentionContext = {
       subject: {
@@ -338,6 +353,10 @@ export async function runDecideStage(subjectId: string): Promise<void> {
         }),
       ),
       openAttentionKeys: new Set(open.rows.map((r) => r.dedupe_key as string)),
+      todaysSteps: steps.rows[0]?.steps ?? null,
+      lastFamilyTouchAt: lastTouch.rows[0]?.at
+        ? new Date(lastTouch.rows[0].at).toISOString()
+        : null,
     };
 
     const candidates = runAttentionRules(ctx);

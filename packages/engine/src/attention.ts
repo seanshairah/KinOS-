@@ -18,6 +18,8 @@ const DOSE_GRACE_MINUTES = 90;
 const CHECKIN_GRACE_MINUTES = 60;
 const TRANSPORT_WINDOW_HOURS = 36;
 const REFILL_WARN_DAYS = 5;
+const LOW_ACTIVITY_STEPS = 300;
+const FAMILY_QUIET_HOURS = 72;
 const ESCALATE_AFTER_MINUTES = { watch: 24 * 60, attention: 6 * 60, urgent: 60 };
 
 function esc(now: Date, severity: Severity): string {
@@ -240,6 +242,47 @@ export function runAttentionRules(ctx: AttentionContext): AttentionCandidate[] {
         sourceSignalId: c.id,
         escalateAt: esc(now, "attention"),
         dedupeKey: `worth_a_check:${subject.id}:${local.date}`,
+      });
+    }
+  }
+
+  // ---- very still day (wearable) ----------------------------------------
+  // Only when a wearable actually reported today — absence of data is never
+  // alarming. A gentle "watch", not an alarm: by mid-afternoon almost no
+  // movement usually just means a call would be kind.
+  if (
+    typeof ctx.todaysSteps === "number" &&
+    local.minutesOfDay >= 15 * 60 &&
+    ctx.todaysSteps < LOW_ACTIVITY_STEPS
+  ) {
+    push({
+      subjectId: subject.id,
+      kind: "low_activity",
+      severity: "watch",
+      title: `A very still day for ${subject.displayName}`,
+      detail: `About ${ctx.todaysSteps} steps by mid-afternoon — a call would be kind.`,
+      escalateAt: esc(now, "watch"),
+      dedupeKey: `low_activity:${subject.id}:${local.date}`,
+    });
+  }
+
+  // ---- the family has gone quiet ----------------------------------------
+  // Care is carried together: when nobody has checked in, left a note or
+  // logged a visit for days, that's worth saying to the family — softly.
+  // Null means no member has ever touched this orbit (onboarding, not
+  // neglect), so it stays silent.
+  if (ctx.lastFamilyTouchAt) {
+    const hoursQuiet = hoursBetween(new Date(ctx.lastFamilyTouchAt), now);
+    if (hoursQuiet >= FAMILY_QUIET_HOURS) {
+      const days = Math.floor(hoursQuiet / 24);
+      push({
+        subjectId: subject.id,
+        kind: "family_quiet",
+        severity: "attention",
+        title: `It's been ${days} day${days === 1 ? "" : "s"} since anyone checked on ${subject.displayName}`,
+        detail: "A message, a call or a visit would mean a lot.",
+        escalateAt: esc(now, "attention"),
+        dedupeKey: `family_quiet:${subject.id}`,
       });
     }
   }

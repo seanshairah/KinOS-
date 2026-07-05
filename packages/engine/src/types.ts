@@ -112,6 +112,7 @@ export const ATTENTION_KINDS = [
   "pattern_change",
   "health_pattern",
   "worth_a_check",
+  "family_quiet",
 ] as const;
 export type AttentionKind = (typeof ATTENTION_KINDS)[number];
 
@@ -202,4 +203,10 @@ export interface AttentionContext {
   caregiverVisits: CaregiverVisitSnapshot[];
   baselines: Baseline[];
   openAttentionKeys: Set<string>;
+  /** Steps counted so far in the subject's local day, when a wearable
+   *  reported any — null/undefined means no data, which is never alarming. */
+  todaysSteps?: number | null;
+  /** When any family member last left a signal (check-in, note, visit) —
+   *  null means never, which is onboarding, not neglect. */
+  lastFamilyTouchAt?: string | null;
 }
