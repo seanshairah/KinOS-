@@ -80,6 +80,21 @@ export default async function EmergencyPage({
             </form>
           </Panel>
 
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-paper-3 px-4 py-3">
+            <p className="text-[13px] leading-relaxed text-ink-soft">
+              For the fridge door and the wallet: everything above on one
+              ink-friendly sheet, for the moment a stranger needs it.
+            </p>
+            <a
+              href={`/print/emergency-card?subject=${subject.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-pill border border-line bg-paper-2 px-4 py-2 text-[13px] font-medium text-ink no-underline"
+            >
+              Print the card
+            </a>
+          </div>
+
           <div className="grid gap-6 lg:grid-cols-2">
             <Panel>
               <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
