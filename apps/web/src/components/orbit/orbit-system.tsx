@@ -100,6 +100,8 @@ export function OrbitSystem({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const tailRefs = useRef(new Map<string, HTMLSpanElement>());
+
   // Position a satellite holder for a given angle (static baseline).
   const place = (el: HTMLDivElement, ring: number, angle: number) => {
     const r = radii[ring]!;
@@ -146,6 +148,15 @@ export function OrbitSystem({
         }
         el.style.opacity = String(0.15 + 0.85 * at);
         el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+        // The comet tail trails opposite the direction of travel, and
+        // rests when the orbit is paused or still gathering.
+        const tail = tailRefs.current.get(s.id);
+        if (tail) {
+          const tangent = a + (s.speed >= 0 ? Math.PI / 2 : -Math.PI / 2);
+          const showTail = !pausedRef.current && at >= 1;
+          tail.style.opacity = showTail ? "1" : "0";
+          tail.style.transform = `rotate(${((tangent + Math.PI) * 180) / Math.PI}deg)`;
+        }
         i++;
       }
       // The lamplight centre brightens as the visitor draws near.
@@ -183,14 +194,21 @@ export function OrbitSystem({
       onMouseLeave={() => setOpen(null)}
     >
       {/* rings + lamplight centre */}
-      <svg viewBox="0 0 430 430" className="absolute inset-0 h-full w-full">
+      <svg viewBox="0 0 430 430" className="absolute inset-0 h-full w-full overflow-visible">
         <defs>
           <radialGradient id="orbit-core">
             <stop offset="0%" stopColor="#EDEBF6" stopOpacity=".9" />
             <stop offset="35%" stopColor="#A9A7E0" stopOpacity=".36" />
             <stop offset="100%" stopColor="#A9A7E0" stopOpacity="0" />
           </radialGradient>
+          <radialGradient id="orbit-vignette">
+            <stop offset="0%" stopColor="#8C8AD6" stopOpacity=".14" />
+            <stop offset="60%" stopColor="#8C8AD6" stopOpacity=".05" />
+            <stop offset="100%" stopColor="#8C8AD6" stopOpacity="0" />
+          </radialGradient>
         </defs>
+        {/* the sky pools softly behind the whole system */}
+        <circle cx="215" cy="215" r="210" fill="url(#orbit-vignette)" />
         {[0.19, 0.31, 0.435].map((f, i) => (
           <circle
             key={f}
@@ -202,6 +220,28 @@ export function OrbitSystem({
             strokeWidth="1"
           />
         ))}
+        {/* light travelling the paths — the rings are journeys, not diagrams */}
+        {!reduced &&
+          [0.19, 0.31, 0.435].map((f, i) => (
+            <circle
+              key={`shimmer-${f}`}
+              cx="215"
+              cy="215"
+              r={430 * f}
+              fill="none"
+              stroke="rgba(237,235,246,.5)"
+              strokeWidth="1.4"
+              className={`ring-shimmer${i === 1 ? " reverse" : ""}`}
+              style={{ animationDelay: `${i * -9}s` }}
+            />
+          ))}
+        {/* the heartbeat: a ring leaves the centre and dissolves */}
+        {!reduced && (
+          <>
+            <circle cx="215" cy="215" r="150" fill="none" stroke="rgba(169,167,224,.4)" strokeWidth="1" className="orbit-ripple" />
+            <circle cx="215" cy="215" r="150" fill="none" stroke="rgba(169,167,224,.3)" strokeWidth="1" className="orbit-ripple second" />
+          </>
+        )}
         <circle ref={coreRef} cx="215" cy="215" r="52" fill="url(#orbit-core)" className="breathe" />
         <circle cx="215" cy="215" r="26" fill="rgba(237,235,246,.16)" />
         <circle cx="215" cy="215" r="10.5" fill="#FEFCF9" />
@@ -240,13 +280,27 @@ export function OrbitSystem({
               onBlur={() => setOpen(null)}
               onClick={() => interactive && setOpen((cur) => (cur === s.id ? null : s.id))}
             >
+              {!reduced && (
+                <span
+                  aria-hidden
+                  ref={(el) => {
+                    if (el) tailRefs.current.set(s.id, el);
+                    else tailRefs.current.delete(s.id);
+                  }}
+                  className="comet-tail transition-opacity duration-700"
+                  style={{
+                    width: s.size * 2.6,
+                    background: `linear-gradient(90deg, ${hue.glow}, transparent)`,
+                  }}
+                />
+              )}
               <span
-                className="orbit-pulse block rounded-full transition-[background,box-shadow] duration-500"
+                className="orbit-pulse relative block rounded-full transition-[background,box-shadow] duration-500"
                 style={{
                   width: s.size,
                   height: s.size,
-                  background: hue.dot,
-                  boxShadow: `0 0 ${s.size * 1.6}px ${hue.glow}`,
+                  background: `radial-gradient(circle at 32% 30%, rgba(255,255,255,.55), transparent 42%), ${hue.dot}`,
+                  boxShadow: `0 0 ${s.size * 1.6}px ${hue.glow}, inset 0 0 ${s.size * 0.4}px rgba(255,255,255,.25)`,
                 }}
               />
               {/* the reveal — presence becomes meaning, only on intent */}

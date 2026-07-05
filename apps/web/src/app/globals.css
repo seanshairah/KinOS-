@@ -45,6 +45,8 @@ body {
   --calm-text: #9fd8bf;
   --ember-text: #eec294;
   --urgent: #e07a66;
+  --urgent-rgb: 224 122 102;
+  --ink-rgb: 237 235 246;
   --urgent-bg: rgba(194, 86, 66, 0.14);
   --attn-bg: rgba(217, 138, 61, 0.1);
 

@@ -3,19 +3,31 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ink: { DEFAULT: "var(--ink)", soft: "var(--ink-soft)", faint: "var(--ink-faint)" },
+        ink: {
+          DEFAULT: "rgb(var(--ink-rgb) / <alpha-value>)",
+          soft: "var(--ink-soft)",
+          faint: "var(--ink-faint)",
+        },
         paper: { DEFAULT: "var(--paper)", 2: "var(--paper-2)", 3: "var(--paper-3)" },
         line: { DEFAULT: "var(--line)", 2: "var(--line-2)" },
         dusk: {
           DEFAULT: "var(--dusk)",
-          2: "var(--dusk-2)",
-          3: "var(--dusk-3)",
+          2: "rgb(var(--dusk-2-rgb) / <alpha-value>)",
+          3: "rgb(var(--dusk-3-rgb) / <alpha-value>)",
           ink: "var(--dusk-ink)",
         },
-        halo: "var(--halo)",
-        ember: { DEFAULT: "var(--ember)", soft: "var(--ember-soft)", text: "var(--ember-text)" },
-        calm: { DEFAULT: "var(--calm)", soft: "var(--calm-soft)", text: "var(--calm-text)" },
-        urgent: { DEFAULT: "var(--urgent)", bg: "var(--urgent-bg)" },
+        halo: "rgb(var(--halo-rgb) / <alpha-value>)",
+        ember: {
+          DEFAULT: "rgb(var(--ember-rgb) / <alpha-value>)",
+          soft: "var(--ember-soft)",
+          text: "var(--ember-text)",
+        },
+        calm: {
+          DEFAULT: "rgb(var(--calm-rgb) / <alpha-value>)",
+          soft: "var(--calm-soft)",
+          text: "var(--calm-text)",
+        },
+        urgent: { DEFAULT: "rgb(var(--urgent-rgb) / <alpha-value>)", bg: "var(--urgent-bg)" },
         attn: { bg: "var(--attn-bg)" },
       },
       borderRadius: {
