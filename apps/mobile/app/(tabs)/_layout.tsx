@@ -79,6 +79,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => <Dot color={T.ember} focused={focused} />,
         }}
       />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: "More",
+          tabBarIcon: ({ focused }) => <Dot color={T.paper3} focused={focused} />,
+        }}
+      />
     </Tabs>
   );
 }

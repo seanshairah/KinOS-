@@ -539,6 +539,217 @@ d("row-level security", () => {
       ).toHaveLength(1);
     });
   });
+
+  describe("the operating layer (0015)", () => {
+    it("requesting a check needs standing: admins yes, viewers only with a wellness_checks grant", async () => {
+      // Alice (admin) may ask.
+      const adminReq = await asUser(aliceId, async (c) => {
+        const r = await c.query<{ id: string }>(
+          `insert into wellness_check_request (subject_id, requested_by, check_type)
+           values ($1, my_member_id($2), 'quick') returning id`,
+          [subjectA, wsA],
+        );
+        return r.rows[0]!.id;
+      });
+      expect(adminReq).toBeTruthy();
+
+      // Vera (viewer) has no grant → the database refuses.
+      await expect(
+        asUser(veraId, (c) =>
+          c.query(
+            `insert into wellness_check_request (subject_id, requested_by, check_type)
+             values ($1, my_member_id($2), 'quick')`,
+            [subjectA, wsA],
+          ),
+        ),
+      ).rejects.toThrow();
+
+      // A wellness_checks grant unlocks the ask — and revoking shuts it again.
+      const veraMemberId = (
+        await pool.query<{ id: string }>(
+          `select id from family_member where workspace_id = $1 and user_id = $2`,
+          [wsA, veraId],
+        )
+      ).rows[0]!.id;
+      const grant = (
+        await pool.query<{ id: string }>(
+          `insert into consent_grant (subject_id, grantee_member_id, scope)
+           values ($1, $2, 'wellness_checks') returning id`,
+          [subjectA, veraMemberId],
+        )
+      ).rows[0]!.id;
+      const veraReq = await asUser(veraId, async (c) => {
+        const r = await c.query<{ id: string }>(
+          `insert into wellness_check_request (subject_id, requested_by, check_type)
+           values ($1, my_member_id($2), 'movement') returning id`,
+          [subjectA, wsA],
+        );
+        return r.rows[0]!.id;
+      });
+      expect(veraReq).toBeTruthy();
+
+      // The asker may cancel their own request; a bystander cannot touch it.
+      const cancelled = await asUser(veraId, async (c) => {
+        const r = await c.query(
+          `update wellness_check_request set status = 'cancelled' where id = $1`,
+          [veraReq],
+        );
+        return r.rowCount;
+      });
+      expect(cancelled).toBe(1);
+      const touchedByCara = await asUser(caraId, async (c) => {
+        const r = await c.query(
+          `update wellness_check_request set status = 'declined' where id = $1`,
+          [adminReq],
+        );
+        return r.rowCount;
+      });
+      expect(touchedByCara).toBe(0);
+
+      await pool.query(`update consent_grant set revoked_at = now() where id = $1`, [grant]);
+      await expect(
+        asUser(veraId, (c) =>
+          c.query(
+            `insert into wellness_check_request (subject_id, requested_by, check_type)
+             values ($1, my_member_id($2), 'quick')`,
+            [subjectA, wsA],
+          ),
+        ),
+      ).rejects.toThrow();
+
+      // The whole family can see that a check was asked for; outsiders cannot.
+      expect(
+        await rows(caraId, `select id from wellness_check_request where id = $1`, [adminReq]),
+      ).toHaveLength(1);
+      expect(
+        await rows(bobId, `select id from wellness_check_request where subject_id = $1`, [subjectA]),
+      ).toEqual([]);
+    });
+
+    it("check results follow health visibility, not mere membership", async () => {
+      const req = (
+        await pool.query<{ id: string }>(
+          `insert into wellness_check_request (subject_id, requested_by, check_type, status)
+           select $1, id, 'quick', 'shared' from family_member
+           where workspace_id = $2 and user_id = $3 returning id`,
+          [subjectA, wsA, aliceId],
+        )
+      ).rows[0]!.id;
+      await pool.query(
+        `insert into wellness_check_result (request_id, subject_id, metrics, summary)
+         values ($1, $2, '{"heart_rate":64}', 'Shared a quick check — all settled.')`,
+        [req, subjectA],
+      );
+      // Admin sees the result; a member with no live health or wellness
+      // grant (Vera — hers was revoked above) sees the request, not the numbers.
+      expect(
+        await rows(aliceId, `select id from wellness_check_result where request_id = $1`, [req]),
+      ).toHaveLength(1);
+      expect(
+        await rows(veraId, `select id from wellness_check_result where request_id = $1`, [req]),
+      ).toEqual([]);
+    });
+
+    it("the trust log is family-visible, append-only, and workspace-scoped", async () => {
+      await asUser(aliceId, (c) =>
+        c.query(
+          `insert into trust_log (workspace_id, actor_member_id, action, subject_id)
+           values ($1, my_member_id($1), 'requested_check', $2)`,
+          [wsA, subjectA],
+        ),
+      );
+      expect(
+        (await rows(veraId, `select id from trust_log where workspace_id = $1`, [wsA])).length,
+      ).toBeGreaterThan(0);
+      expect(await rows(bobId, `select id from trust_log where workspace_id = $1`, [wsA])).toEqual(
+        [],
+      );
+      // No update/delete verb was ever granted.
+      await expect(
+        asUser(aliceId, (c) => c.query(`delete from trust_log where workspace_id = $1`, [wsA])),
+      ).rejects.toThrow();
+    });
+
+    it("the care plan is readable at the door but written by the family", async () => {
+      await asUser(aliceId, (c) =>
+        c.query(
+          `insert into care_plan (subject_id, daily_routine, preferred_pharmacy)
+           values ($1, 'Tea at 7, walk at 9.', 'Greenwood Pharmacy')
+           on conflict (subject_id) do update set daily_routine = excluded.daily_routine`,
+          [subjectA],
+        ),
+      );
+      // Cara the caregiver can read it…
+      expect(
+        await rows(caraId, `select subject_id from care_plan where subject_id = $1`, [subjectA]),
+      ).toHaveLength(1);
+      // …but cannot rewrite the family's standing instructions.
+      const changed = await asUser(caraId, async (c) => {
+        const r = await c.query(
+          `update care_plan set daily_routine = 'changed' where subject_id = $1`,
+          [subjectA],
+        );
+        return r.rowCount;
+      });
+      expect(changed).toBe(0);
+    });
+
+    it("handover: caregivers write it, the named receiver closes it, viewers cannot create one", async () => {
+      const handover = await asUser(caraId, async (c) => {
+        const r = await c.query<{ id: string }>(
+          `insert into family_handover (subject_id, from_member_id, to_member_id, body)
+           values ($1, my_member_id($2),
+                   (select id from family_member where workspace_id = $2 and user_id = $3),
+                   'Quiet afternoon. Evening dose still open.')
+           returning id`,
+          [subjectA, wsA, aliceId],
+        );
+        return r.rows[0]!.id;
+      });
+      await expect(
+        asUser(veraId, (c) =>
+          c.query(
+            `insert into family_handover (subject_id, body) values ($1, 'x')`,
+            [subjectA],
+          ),
+        ),
+      ).rejects.toThrow();
+      const acked = await asUser(aliceId, async (c) => {
+        const r = await c.query(
+          `update family_handover set status = 'acknowledged', acknowledged_at = now()
+           where id = $1`,
+          [handover],
+        );
+        return r.rowCount;
+      });
+      expect(acked).toBe(1);
+    });
+
+    it("proof of care is service-written: the family reads, nobody writes through the app role", async () => {
+      await pool.query(
+        `insert into proof_of_care_report (workspace_id, week_start, body, stats)
+         values ($1, date_trunc('week', now())::date, 'The week, accounted for.', '{"visits":3}')
+         on conflict (workspace_id, week_start) do nothing`,
+        [wsA],
+      );
+      expect(
+        (await rows(veraId, `select id from proof_of_care_report where workspace_id = $1`, [wsA]))
+          .length,
+      ).toBe(1);
+      expect(
+        await rows(bobId, `select id from proof_of_care_report where workspace_id = $1`, [wsA]),
+      ).toEqual([]);
+      await expect(
+        asUser(aliceId, (c) =>
+          c.query(
+            `insert into proof_of_care_report (workspace_id, week_start, body)
+             values ($1, '2000-01-03', 'forged')`,
+            [wsA],
+          ),
+        ),
+      ).rejects.toThrow();
+    });
+  });
 });
 
 if (!url) {

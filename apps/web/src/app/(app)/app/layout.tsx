@@ -16,6 +16,7 @@ import { currentUserId, signOut } from "@/lib/auth";
 import { getFamilyContext } from "@/lib/data/context";
 import { getComfort, getT } from "@/lib/i18n";
 import { countOpenAttention } from "@/lib/data/attention";
+import { withUser } from "@kinos/db";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isDatabaseConfigured()) redirect("/setup");
@@ -36,6 +37,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
   const isVisitor = Boolean(visitor.rows[0]);
 
+  const unread = ctx
+    ? await withUser(userId, async (db) => {
+        const res = await db.query(
+          `select count(*)::int as n from notification where read_at is null and channel = 'in_app'`,
+        );
+        return (res.rows[0]?.n as number) ?? 0;
+      })
+    : 0;
+
+  const isCarer = ctx && ["caregiver", "admin"].includes(ctx.member.role);
   const items = [
     { href: "/app", label: t("nav.today") },
     { href: "/app/attention", label: t("nav.attention"), badge: attentionCount || undefined },
@@ -43,7 +54,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/app/signals", label: t("nav.signals") },
     { href: "/app/money", label: t("nav.money") },
     { href: "/app/record", label: t("nav.record") },
+    ...(isCarer ? [{ href: "/app/care", label: t("nav.care") }] : []),
+    { href: "/app/consent", label: t("nav.consent") },
     { href: "/app/emergency", label: t("nav.emergency") },
+    { href: "/app/notifications", label: t("nav.notifications"), badge: unread || undefined },
     { href: "/app/settings", label: t("nav.admin") },
   ];
 

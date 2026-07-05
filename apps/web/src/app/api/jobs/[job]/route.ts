@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isDatabaseConfigured } from "@kinos/db";
-import { attentionSweep, escalationSweep, generateBriefs, generatePatterns, healthSync } from "@/lib/jobs";
+import { attentionSweep, escalationSweep, generateBriefs, generatePatterns, healthSync, weeklyProofOfCare } from "@/lib/jobs";
 
 export const maxDuration = 300;
 
@@ -36,6 +36,8 @@ export async function GET(
         return NextResponse.json({ ok: true, patterns: await generatePatterns() });
       case "health-sync":
         return NextResponse.json({ ok: true, processed: await healthSync() });
+      case "proof-of-care":
+        return NextResponse.json({ ok: true, reports: await weeklyProofOfCare() });
       default:
         return NextResponse.json({ error: "unknown job" }, { status: 404 });
     }

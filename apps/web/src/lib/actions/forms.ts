@@ -21,6 +21,18 @@ import { addExpenseAction, contributeAction, createPotAction } from "./money";
 import { addRecordItemAction } from "./memory";
 import { setHealthSharingAction } from "./health";
 import { setReachPreferencesAction, setQuietHoursAction } from "./notifications";
+import { cancelCheckAction, requestCheckAction, respondCheckAction } from "./checks";
+import {
+  acknowledgeHandoverAction,
+  connectDeviceAction,
+  createHandoverAction,
+  disconnectDeviceAction,
+  endVisitAction,
+  raiseAttentionAction,
+  saveCarePlanAction,
+  setQuietModeAction,
+  startVisitAction,
+} from "./operating";
 import { upgradePlanAction } from "./billing";
 import {
   createOrbitAction,
@@ -115,4 +127,40 @@ export async function setReachPreferencesForm(fd: FormData): Promise<void> {
 }
 export async function setQuietHoursForm(fd: FormData): Promise<void> {
   await setQuietHoursAction(fd);
+}
+export async function requestCheckForm(fd: FormData): Promise<void> {
+  await requestCheckAction(fd);
+}
+export async function respondCheckForm(fd: FormData): Promise<void> {
+  await respondCheckAction(fd);
+}
+export async function cancelCheckForm(fd: FormData): Promise<void> {
+  await cancelCheckAction(fd);
+}
+export async function saveCarePlanForm(fd: FormData): Promise<void> {
+  await saveCarePlanAction(fd);
+}
+export async function setQuietModeForm(fd: FormData): Promise<void> {
+  await setQuietModeAction(fd);
+}
+export async function createHandoverForm(fd: FormData): Promise<void> {
+  await createHandoverAction(fd);
+}
+export async function acknowledgeHandoverForm(fd: FormData): Promise<void> {
+  await acknowledgeHandoverAction(fd);
+}
+export async function connectDeviceForm(fd: FormData): Promise<void> {
+  await connectDeviceAction(fd);
+}
+export async function disconnectDeviceForm(fd: FormData): Promise<void> {
+  await disconnectDeviceAction(fd);
+}
+export async function startVisitForm(fd: FormData): Promise<void> {
+  await startVisitAction(fd);
+}
+export async function endVisitForm(fd: FormData): Promise<void> {
+  await endVisitAction(fd);
+}
+export async function raiseAttentionForm(fd: FormData): Promise<void> {
+  await raiseAttentionAction(fd);
 }

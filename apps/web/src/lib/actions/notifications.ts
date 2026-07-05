@@ -108,3 +108,12 @@ export async function setQuietHoursAction(formData: FormData): Promise<ActionRes
   revalidatePath("/app/settings");
   return { ok: true };
 }
+
+export async function markNotificationsReadAction(): Promise<void> {
+  const ctx = await requireFamilyContext();
+  await withUser(ctx.userId, async (db) => {
+    await db.query(`update notification set read_at = now() where read_at is null`);
+  });
+  revalidatePath("/app/notifications");
+  revalidatePath("/app");
+}
