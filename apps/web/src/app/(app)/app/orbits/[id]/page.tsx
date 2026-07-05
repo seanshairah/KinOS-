@@ -24,6 +24,15 @@ import {
 } from "@kinos/ui";
 
 import { VoiceCapture } from "@/components/voice-capture";
+import {
+  AdherenceStrip,
+  CarePlanPanel,
+  DevicesPanel,
+  HandoverPanel,
+  QuietModePanel,
+  RequestCheckPanel,
+  SharedNotesPanel,
+} from "@/components/orbit-extras";
 import { OrbitSystem, type SatelliteSpec } from "@/components/orbit/orbit-system";
 import { CalmEmpty, PaperBrief, StatusWord } from "@/components/rooms";
 import { requireFamilyContext } from "@/lib/data/context";
@@ -341,6 +350,14 @@ export default async function OrbitDetailPage({
       {/* capture */}
       <VoiceCapture subjectId={subject.id} />
 
+      {/* request check — asking is free; sharing is theirs */}
+      <RequestCheckPanel
+        subject={subject}
+        viewerRole={ctx.member.role}
+        viewerMemberId={ctx.member.id}
+        userId={ctx.userId}
+      />
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* medication */}
         <Panel className="flex flex-col gap-4">
@@ -374,6 +391,7 @@ export default async function OrbitDetailPage({
               </div>
             ))
           )}
+          {medications.length > 0 && <AdherenceStrip subject={subject} userId={ctx.userId} />}
           <details className="mt-1">
             <summary className="cursor-pointer text-[12.5px] font-medium text-dusk-2">Add a medication</summary>
             <form action={addMedicationForm} className="mt-3 flex flex-col gap-2">
@@ -510,6 +528,28 @@ export default async function OrbitDetailPage({
         </details>
       </Panel>
 
+      {/* the standing knowledge + the small things worth remembering */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CarePlanPanel
+          subject={subject}
+          canEdit={["admin", "member", "care_recipient"].includes(ctx.member.role)}
+          userId={ctx.userId}
+        />
+        <SharedNotesPanel subject={subject} userId={ctx.userId} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <QuietModePanel
+          subject={subject}
+          canSet={["admin", "care_recipient"].includes(ctx.member.role)}
+        />
+        <DevicesPanel
+          subject={subject}
+          canManage={["admin", "member", "care_recipient"].includes(ctx.member.role)}
+          userId={ctx.userId}
+        />
+      </div>
+
       {/* health — quiet notes for those the dial allows; controls for those who hold it */}
       {(canManageHealth || healthObservations.length > 0) && (
         <Panel className="flex flex-col gap-3">
@@ -637,6 +677,13 @@ export default async function OrbitDetailPage({
               {p.summary}
             </p>
           ))}
+        </Panel>
+      )}
+
+      {["admin", "member", "caregiver"].includes(ctx.member.role) && (
+        <Panel className="flex flex-col gap-2">
+          <Eyebrow>Handover</Eyebrow>
+          <HandoverPanel subject={subject} members={members} viewerMemberId={ctx.member.id} />
         </Panel>
       )}
 

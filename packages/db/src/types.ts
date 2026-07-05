@@ -97,6 +97,8 @@ export interface CareSubjectRow {
   phone: string | null;
   sms_checkin: boolean;
   last_sms_prompt_on: string | null;
+  quiet_until: string | null;
+  quiet_note: string | null;
   created_at: string;
 }
 
@@ -424,4 +426,115 @@ export interface ActivationEventRow {
     | "first_duty"
     | "first_brief";
   at: string;
+}
+
+export type CheckType =
+  | "quick"
+  | "heart_rate"
+  | "blood_pressure"
+  | "spo2"
+  | "temperature"
+  | "movement"
+  | "sleep"
+  | "medication"
+  | "manual_checkin"
+  | "caregiver_confirm";
+
+export type CheckStatus = "pending" | "later" | "shared" | "declined" | "expired" | "cancelled";
+
+export interface DeviceConnectionRow {
+  id: string;
+  subject_id: string;
+  provider:
+    | "apple_health"
+    | "health_connect"
+    | "samsung_health"
+    | "withings"
+    | "bluetooth_device"
+    | "manual"
+    | "caregiver";
+  label: string | null;
+  capabilities: Json;
+  permission_status: "granted" | "partial" | "pending" | "revoked";
+  status: "active" | "paused" | "disconnected";
+  last_synced_at: string | null;
+  created_at: string;
+}
+
+export interface WellnessCheckRequestRow {
+  id: string;
+  subject_id: string;
+  requested_by: string;
+  check_type: CheckType;
+  message: string | null;
+  status: CheckStatus;
+  respond_by: string;
+  responded_at: string | null;
+  result_signal_id: string | null;
+  created_at: string;
+}
+
+export interface WellnessCheckResultRow {
+  id: string;
+  request_id: string;
+  subject_id: string;
+  metrics: Json;
+  summary: string;
+  worth_a_check: boolean;
+  created_at: string;
+}
+
+export interface TrustLogRow {
+  id: string;
+  workspace_id: string;
+  actor_member_id: string | null;
+  action:
+    | "viewed_emergency_profile"
+    | "requested_check"
+    | "responded_check"
+    | "changed_consent"
+    | "changed_role"
+    | "exported_records"
+    | "downloaded_document"
+    | "raised_alert"
+    | "viewed_health"
+    | "changed_quiet_mode";
+  subject_id: string | null;
+  detail: string | null;
+  at: string;
+}
+
+export interface CarePlanRow {
+  subject_id: string;
+  daily_routine: string | null;
+  dietary_notes: string | null;
+  mobility_notes: string | null;
+  emergency_instructions: string | null;
+  preferred_pharmacy: string | null;
+  doctor_name: string | null;
+  doctor_phone: string | null;
+  family_rules: string | null;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export interface FamilyHandoverRow {
+  id: string;
+  subject_id: string;
+  from_member_id: string | null;
+  to_member_id: string | null;
+  body: string;
+  note: string | null;
+  status: "open" | "acknowledged";
+  created_at: string;
+  acknowledged_at: string | null;
+}
+
+export interface ProofOfCareReportRow {
+  id: string;
+  workspace_id: string;
+  week_start: string;
+  body: string;
+  stats: Json;
+  created_at: string;
 }

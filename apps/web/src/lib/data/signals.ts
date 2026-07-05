@@ -85,6 +85,16 @@ export function describeSignal(s: SignalSummary): { text: string; tone: "ember" 
     }
     case "note":
       return { text: typeof v.note === "string" ? v.note : `A note about ${s.subject_name}`, tone: "halo" };
+    case "wellness_check": {
+      const worth = v.worth_a_check === true;
+      return {
+        text:
+          typeof v.summary === "string"
+            ? v.summary
+            : `${s.subject_name} shared a wellness check`,
+        tone: worth ? "ember" : "calm",
+      };
+    }
     default:
       return { text: `${s.subject_name} — ${s.signal_type.replaceAll("_", " ")}`, tone: "halo" };
   }

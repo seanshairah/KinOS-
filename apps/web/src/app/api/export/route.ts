@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@kinos/db";
 import { currentUserId } from "@/lib/auth";
 import { exportWorkspaceData } from "@/lib/data/consent";
+import { getFamilyContext } from "@/lib/data/context";
+import { logTrust } from "@/lib/data/operating";
 
 /** Data portability: the family's record, as they can see it, as JSON. */
 export async function GET() {
@@ -12,6 +14,15 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: "sign in first" }, { status: 401 });
 
   const data = await exportWorkspaceData(userId);
+  // Exports are visible in the Trust Log — openness is the feature.
+  const ctx = await getFamilyContext(userId);
+  if (ctx) {
+    await logTrust(userId, {
+      workspaceId: ctx.workspace.id,
+      actorMemberId: ctx.member.id,
+      action: "exported_records",
+    }).catch(() => {});
+  }
   return new NextResponse(JSON.stringify(data, null, 2), {
     headers: {
       "content-type": "application/json",

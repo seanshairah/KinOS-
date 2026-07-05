@@ -3,7 +3,9 @@ import { uploadDocumentForm } from "@/lib/actions/documents";
 import { AskMemory } from "@/components/ask-memory";
 import { requireFamilyContext } from "@/lib/data/context";
 import { listDocuments, listRecordItems, listSubjects } from "@/lib/data/record";
-import { CalmEmpty, RoomDrawer, RoomHeader, RoomSection } from "@/components/rooms";
+import { listHandovers, listProofReports } from "@/lib/data/operating";
+import { acknowledgeHandoverForm } from "@/lib/actions/forms";
+import { CalmEmpty, PaperBrief, RoomDrawer, RoomHeader, RoomSection } from "@/components/rooms";
 
 /**
  * The Record Room — the family's memory, searchable in plain words.
@@ -31,11 +33,14 @@ export default async function RecordRoomPage({
 }) {
   const { q } = await searchParams;
   const ctx = await requireFamilyContext();
-  const [items, subjects, documents] = await Promise.all([
+  const [items, subjects, documents, handovers, proofReports] = await Promise.all([
     listRecordItems(ctx.userId, q),
     listSubjects(ctx.userId),
     listDocuments(ctx.userId),
+    listHandovers(ctx.userId, undefined, 4),
+    listProofReports(ctx.userId, 4),
   ]);
+  const weekFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" });
   const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
   return (
@@ -178,6 +183,56 @@ export default async function RecordRoomPage({
                 </div>
               );
             })}
+          </div>
+        </RoomSection>
+      )}
+
+      {/* ——— handovers: one pair of hands to the next ——— */}
+      {handovers.length > 0 && (
+        <RoomSection title="Handovers" delay={170}>
+          <div className="flex flex-col gap-4">
+            {handovers.map((h) => (
+              <div key={h.id} className="border-t border-line pt-4 first:border-t-0 first:pt-0">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono text-[10.5px] text-ink-faint">
+                    {h.from_name ?? "family"} {h.to_name ? `→ ${h.to_name}` : "→ whoever comes next"} ·{" "}
+                    {dateFmt.format(new Date(h.created_at))}
+                    {h.status === "acknowledged" ? " · received ✓" : ""}
+                  </span>
+                  {h.status === "open" && (
+                    <form action={acknowledgeHandoverForm}>
+                      <input type="hidden" name="handoverId" value={h.id} />
+                      <button className="rounded-pill border border-line px-3 py-1 text-[12px] text-ink-soft hover:text-ink">
+                        I have it from here
+                      </button>
+                    </form>
+                  )}
+                </div>
+                <p className="mt-2 max-w-[70ch] whitespace-pre-line font-serif text-[15.5px] font-light leading-relaxed text-ink">
+                  {h.body}
+                </p>
+                {h.note && (
+                  <p className="mt-1.5 text-[13px] italic leading-relaxed text-ink-soft">
+                    &ldquo;{h.note}&rdquo;
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </RoomSection>
+      )}
+
+      {/* ——— proof of care: the week, accounted for ——— */}
+      {proofReports.length > 0 && (
+        <RoomSection title="Proof of care · one honest page a week" delay={185}>
+          <div className="flex flex-col gap-4">
+            {proofReports.map((report) => (
+              <PaperBrief
+                key={report.id}
+                meta={`Week of ${weekFmt.format(new Date(report.week_start))}`}
+                body={report.body}
+              />
+            ))}
           </div>
         </RoomSection>
       )}

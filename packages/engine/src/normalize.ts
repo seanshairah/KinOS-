@@ -57,6 +57,9 @@ const DEFAULT_PRIVACY: Record<SignalType, PrivacyLevel> = {
   emergency: "family",
   medication_dose: "caregiver_visible",
   wearable: "medical_private",
+  // The calm sentence is family-visible; the numbers stay in the result
+  // row, which follows health consent.
+  wellness_check: "family",
 };
 
 export function normalizeCapture(input: unknown, now: Date): NormalizeResult {

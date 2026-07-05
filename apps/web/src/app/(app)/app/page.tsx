@@ -7,6 +7,7 @@ import { listOrbits, type OrbitSummary } from "@/lib/data/orbits";
 import { listOpenAttention } from "@/lib/data/attention";
 import { listDuties } from "@/lib/data/duties";
 import { listRecentSignals, listPatterns, describeSignal } from "@/lib/data/signals";
+import { getFamilyRhythm, getTomorrowPrep } from "@/lib/data/operating";
 import { MiniOrbit, type OrbitStatus } from "@/components/mini-orbit";
 import {
   CalmEmpty,
@@ -118,7 +119,12 @@ export default async function TodayRoomPage({
     );
   }
 
-  const [attention, openDuties, signals, patterns, latestBrief] = await Promise.all([
+  const hourNow = Number(
+    new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: tz }).format(
+      new Date(),
+    ),
+  );
+  const [attention, openDuties, signals, patterns, latestBrief, prep, rhythm] = await Promise.all([
     listOpenAttention(userId),
     listDuties(userId, "open"),
     listRecentSignals(userId, 8),
@@ -131,7 +137,12 @@ export default async function TodayRoomPage({
       );
       return res.rows[0] ?? null;
     }),
+    getTomorrowPrep(userId),
+    getFamilyRhythm(userId),
   ]);
+  // Tomorrow steps forward in the afternoon — or the moment it has a gap.
+  const prepVisible = prep.filter((p) => !p.prep.ready || p.prep.plan.length > 0);
+  const showPrep = hourNow >= 15 ? prepVisible : prepVisible.filter((p) => !p.prep.ready);
 
   // The five-second answer, computed from the family's real state.
   const steady = attention.length === 0;
@@ -256,6 +267,45 @@ export default async function TodayRoomPage({
         />
       )}
 
+      {/* ——— tomorrow, checked while there's still evening left ——— */}
+      {showPrep.length > 0 && (
+        <RoomSection title="Tomorrow" delay={90}>
+          <div className="flex flex-col gap-4">
+            {showPrep.map((p) => (
+              <div key={p.subjectId} className="border-t border-line pt-3 first:border-t-0 first:pt-0">
+                <p className="flex flex-wrap items-center gap-2 font-serif text-[16.5px] font-light leading-snug text-ink">
+                  <span
+                    aria-hidden
+                    className={`inline-block h-[7px] w-[7px] rounded-full ${
+                      p.prep.ready
+                        ? "bg-calm-text/80"
+                        : "bg-ember shadow-[0_0_8px_rgba(217,138,61,.55)]"
+                    }`}
+                  />
+                  {p.prep.headline}
+                </p>
+                {p.prep.gaps.length > 0 && (
+                  <ul className="mt-1.5 flex flex-col gap-1 pl-4">
+                    {p.prep.gaps.map((gap) => (
+                      <li key={gap} className="list-disc text-[13.5px] leading-relaxed text-ink-soft">
+                        <Link href={`/app/orbits/${p.subjectId}`} className="text-ink-soft no-underline hover:text-ink">
+                          {gap}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {p.prep.gaps.length === 0 && p.prep.plan.length > 0 && (
+                  <p className="mt-1 font-mono text-[11px] leading-relaxed text-ink-faint">
+                    {p.prep.plan.join(" · ")}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </RoomSection>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         {/* ——— the orbits: each loved one, at a glance ——— */}
         <div className="flex flex-col gap-3">
@@ -355,6 +405,30 @@ export default async function TodayRoomPage({
                     </span>
                   </p>
                 ))}
+              </div>
+            </RoomSection>
+          )}
+
+          {/* ——— the family's rhythm: the usual, said out loud ——— */}
+          {rhythm.length > 0 && (
+            <RoomSection title="Family rhythm" delay={205}>
+              <div className="flex flex-col gap-2.5">
+                {rhythm.flatMap((r) =>
+                  r.lines.slice(0, 2).map((line) => (
+                    <p
+                      key={`${r.subjectId}:${line.topic}`}
+                      className="border-t border-line pt-2.5 text-[13.5px] leading-relaxed text-ink-soft first:border-t-0 first:pt-0"
+                    >
+                      {line.state === "shifting" && (
+                        <span
+                          aria-hidden
+                          className="mr-2 inline-block h-[6px] w-[6px] rounded-full bg-ember/80 align-middle"
+                        />
+                      )}
+                      {line.text}
+                    </p>
+                  )),
+                )}
               </div>
             </RoomSection>
           )}

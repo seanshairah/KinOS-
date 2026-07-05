@@ -45,7 +45,78 @@ const orbitSchema = z.object({
     .regex(/^\d{2}:\d{2}$/)
     .optional()
     .or(z.literal("")),
+  template: z
+    .enum([
+      "",
+      "elderly_parent",
+      "child_school",
+      "post_surgery",
+      "chronic_care",
+      "caregiver_managed",
+      "diaspora_parent",
+    ])
+    .default(""),
 });
+
+/**
+ * Care templates — a running start for the common shapes of care. Each
+ * seeds a couple of starter duties and a care-plan skeleton the family
+ * edits into their own; nothing here is medical advice, only structure.
+ */
+const CARE_TEMPLATES: Record<
+  string,
+  {
+    checkinBy?: string;
+    duties: string[];
+    plan: Partial<Record<"daily_routine" | "dietary_notes" | "family_rules", string>>;
+  }
+> = {
+  elderly_parent: {
+    checkinBy: "10:00",
+    duties: ["Set up the week's medication", "Arrange the next clinic visit"],
+    plan: {
+      daily_routine: "Morning check-in by 10:00. A short walk if the day allows.",
+      family_rules: "One person owns transport for every clinic visit — confirmed the night before.",
+    },
+  },
+  child_school: {
+    checkinBy: "07:00",
+    duties: ["Confirm the school run for this week", "File the latest school forms"],
+    plan: {
+      daily_routine: "School-day mornings start at 06:30. Homework before screens.",
+    },
+  },
+  post_surgery: {
+    checkinBy: "09:00",
+    duties: ["Book the follow-up review", "Collect the prescribed medication"],
+    plan: {
+      daily_routine: "Rest first. Short, gentle movement as advised at discharge.",
+      family_rules: "Any new pain or swelling is worth a check — contact the clinic if concerned.",
+    },
+  },
+  chronic_care: {
+    checkinBy: "09:00",
+    duties: ["Set up refill reminders for regular medication", "Plan the next routine review"],
+    plan: {
+      daily_routine: "Medication with breakfast and dinner. Readings noted when taken.",
+    },
+  },
+  caregiver_managed: {
+    checkinBy: "08:00",
+    duties: ["Agree the caregiver's visit days", "Write the care plan together"],
+    plan: {
+      family_rules: "The caregiver logs each visit; the family reads the evening brief.",
+    },
+  },
+  diaspora_parent: {
+    checkinBy: "10:00",
+    duties: ["Set up the Money Pot for care costs", "Arrange the daily check-in text"],
+    plan: {
+      daily_routine: "A morning check-in — by app or a simple text — and a weekly family call.",
+      family_rules: "Receipts go in the record the day money is spent. Proof is the trust.",
+    },
+  },
+};
 
 export async function createOrbitAction(formData: FormData): Promise<ActionResult> {
   const ctx = await requireFamilyContext();
@@ -54,6 +125,7 @@ export async function createOrbitAction(formData: FormData): Promise<ActionResul
     kind: formData.get("kind"),
     timezone: formData.get("timezone") || "Africa/Harare",
     expectedCheckinBy: formData.get("expectedCheckinBy") ?? "",
+    template: formData.get("template") ?? "",
   });
   if (!parsed.success) {
     return { ok: false, message: "Give this Orbit a name and a kind." };
@@ -72,6 +144,7 @@ export async function createOrbitAction(formData: FormData): Promise<ActionResul
     };
   }
 
+  const template = parsed.data.template ? CARE_TEMPLATES[parsed.data.template] : undefined;
   const id = await withUser(ctx.userId, async (db) => {
     const res = await db.query(
       `insert into care_subject (workspace_id, display_name, kind, timezone, expected_checkin_by)
@@ -81,15 +154,37 @@ export async function createOrbitAction(formData: FormData): Promise<ActionResul
         parsed.data.displayName,
         parsed.data.kind,
         parsed.data.timezone,
-        parsed.data.expectedCheckinBy || null,
+        parsed.data.expectedCheckinBy || template?.checkinBy || null,
       ],
     );
+    const subjectId = res.rows[0]!.id as string;
+    if (template) {
+      for (const title of template.duties) {
+        await db.query(
+          `insert into duty (subject_id, title, created_by) values ($1, $2, $3)`,
+          [subjectId, title, ctx.member.id],
+        );
+      }
+      if (Object.keys(template.plan).length > 0) {
+        await db.query(
+          `insert into care_plan (subject_id, daily_routine, dietary_notes, family_rules, updated_by)
+           values ($1, $2, $3, $4, $5) on conflict (subject_id) do nothing`,
+          [
+            subjectId,
+            template.plan.daily_routine ?? null,
+            template.plan.dietary_notes ?? null,
+            template.plan.family_rules ?? null,
+            ctx.member.id,
+          ],
+        );
+      }
+    }
     await db.query(
       `insert into activation_event (workspace_id, step) values ($1, 'orbit_created')
        on conflict do nothing`,
       [ctx.workspace.id],
     );
-    return res.rows[0]!.id as string;
+    return subjectId;
   });
 
   revalidatePath("/app");
@@ -184,7 +279,9 @@ export async function acceptInvitationAction(formData: FormData): Promise<void> 
 const consentSchema = z.object({
   subjectId: z.string().uuid(),
   granteeMemberId: z.string().uuid(),
-  scope: z.enum(["health", "money", "documents", "location", "full"]),
+  scope: z.enum(["health", "money", "documents", "location", "wellness_checks", "full"]),
+  // 0 = open-ended; otherwise the grant quietly lapses on its own.
+  expiresInDays: z.coerce.number().int().min(0).max(365).default(0),
 });
 
 export async function grantConsentAction(formData: FormData): Promise<ActionResult> {
@@ -193,22 +290,36 @@ export async function grantConsentAction(formData: FormData): Promise<ActionResu
     subjectId: formData.get("subjectId"),
     granteeMemberId: formData.get("granteeMemberId"),
     scope: formData.get("scope"),
+    expiresInDays: formData.get("expiresInDays") ?? 0,
   });
   if (!parsed.success) return { ok: false, message: "Pick a person, a member, and a scope." };
 
   await withUser(ctx.userId, async (db) => {
     await db.query(
-      `insert into consent_grant (subject_id, grantee_member_id, scope, granted_by)
-       values ($1, $2, $3, $4)`,
-      [parsed.data.subjectId, parsed.data.granteeMemberId, parsed.data.scope, ctx.member.id],
+      `insert into consent_grant (subject_id, grantee_member_id, scope, granted_by, expires_at)
+       values ($1, $2, $3, $4,
+               case when $5::int > 0 then now() + make_interval(days => $5::int) end)`,
+      [
+        parsed.data.subjectId,
+        parsed.data.granteeMemberId,
+        parsed.data.scope,
+        ctx.member.id,
+        parsed.data.expiresInDays,
+      ],
     );
     await db.query(
       `insert into access_log (workspace_id, actor_member_id, action, target)
        values ($1, $2, 'granted_consent', $3)`,
       [ctx.workspace.id, ctx.member.id, `${parsed.data.scope} on ${parsed.data.subjectId}`],
     );
+    await db.query(
+      `insert into trust_log (workspace_id, actor_member_id, action, subject_id, detail)
+       values ($1, $2, 'changed_consent', $3, $4)`,
+      [ctx.workspace.id, ctx.member.id, parsed.data.subjectId, `granted ${parsed.data.scope}`],
+    );
   });
   revalidatePath("/app/settings");
+  revalidatePath("/app/consent");
   return { ok: true };
 }
 
@@ -225,8 +336,14 @@ export async function revokeConsentAction(formData: FormData): Promise<ActionRes
        values ($1, $2, 'revoked_consent', $3)`,
       [ctx.workspace.id, ctx.member.id, grantId],
     );
+    await db.query(
+      `insert into trust_log (workspace_id, actor_member_id, action, detail)
+       values ($1, $2, 'changed_consent', 'revoked a grant')`,
+      [ctx.workspace.id, ctx.member.id],
+    );
   });
   revalidatePath("/app/settings");
+  revalidatePath("/app/consent");
   return { ok: true };
 }
 
@@ -240,6 +357,11 @@ export async function raiseEmergencyAction(formData: FormData): Promise<ActionRe
       `insert into emergency_alert (subject_id, raised_by, note) values ($1, $2, $3)
        returning id`,
       [subjectId, ctx.member.id, note ?? null],
+    );
+    await db.query(
+      `insert into trust_log (workspace_id, actor_member_id, action, subject_id)
+       values ($1, $2, 'raised_alert', $3)`,
+      [ctx.workspace.id, ctx.member.id, subjectId],
     );
     return res.rows[0]!.id as string;
   });

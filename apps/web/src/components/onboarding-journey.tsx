@@ -191,6 +191,19 @@ export function OnboardingJourney({
                 <option value="self">Myself</option>
               </select>
               <input name="timezone" defaultValue="Africa/Harare" className={inputClass} aria-label="Their timezone" />
+              <select name="template" className={inputClass} defaultValue="" aria-label="Start from a shape of care">
+                <option value="">Start from a blank page</option>
+                <option value="elderly_parent">Elderly parent — check-ins, medication, clinic runs</option>
+                <option value="child_school">Child at school — the school run, forms, routines</option>
+                <option value="post_surgery">Post-surgery recovery — follow-ups and gentle days</option>
+                <option value="chronic_care">Ongoing condition — refills and routine reviews</option>
+                <option value="caregiver_managed">Caregiver-managed care — visits and the evening brief</option>
+                <option value="diaspora_parent">Parent back home — check-in texts and the Money Pot</option>
+              </select>
+              <p className="text-[11.5px] leading-relaxed text-ink-faint">
+                A template just sets up the first duties and a care-plan sketch — everything
+                stays yours to edit.
+              </p>
               <SubmitButton>Place them at the centre</SubmitButton>
             </form>
           </Chapter>

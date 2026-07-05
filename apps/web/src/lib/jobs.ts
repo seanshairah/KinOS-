@@ -189,10 +189,47 @@ export async function attentionSweep(): Promise<number> {
     await runDecideStage(id);
   }
   await markLateDuties();
+  await expireWellnessChecks();
   // The daily "how are you?" text rides the same sweep; it stamps a
   // per-subject date, so re-runs are no-ops.
   await sendSmsCheckinPrompts().catch(() => {});
   return subjects.length;
+}
+
+/**
+ * A Request Check that was never answered lapses quietly. The asker gets a
+ * watch-level note — "ask someone nearby" — never an alarm; a decline is a
+ * complete answer and creates nothing at all.
+ */
+async function expireWellnessChecks(): Promise<void> {
+  await withService(async (db) => {
+    const lapsed = await db.query(
+      `update wellness_check_request
+       set status = 'expired'
+       where status in ('pending','later') and respond_by < now()
+       returning id, subject_id, requested_by, status`,
+    );
+    for (const req of lapsed.rows) {
+      const subject = await db.query(
+        `select display_name from care_subject where id = $1`,
+        [req.subject_id],
+      );
+      const name = subject.rows[0]?.display_name ?? "Your loved one";
+      await db.query(
+        `insert into attention_event (subject_id, kind, severity, title, detail, owner_member_id, dedupe_key)
+         values ($1, 'check_unanswered', 'watch', $2,
+                 'The request simply lapsed — phones get set down. Worth asking someone nearby to look in.',
+                 $3, $4)
+         on conflict (dedupe_key) where status in ('open','ack','snoozed') do nothing`,
+        [
+          req.subject_id,
+          `${name} didn't see the wellness check request`,
+          req.requested_by,
+          `check_unanswered:${req.id}`,
+        ],
+      );
+    }
+  });
 }
 
 async function markLateDuties(): Promise<void> {
@@ -202,6 +239,109 @@ async function markLateDuties(): Promise<void> {
        where status = 'open' and due_at is not null and due_at < now()`,
     ),
   );
+}
+
+/**
+ * Sunday evening: the week, accounted for. One Proof of Care report per
+ * workspace — visits, doses, receipts, duties, what stayed open — written
+ * in the family voice and kept where the whole family can read it.
+ */
+export async function weeklyProofOfCare(): Promise<number> {
+  const { composeProofOfCare } = await import("@kinos/engine");
+  return withService(async (db) => {
+    const workspaces = await db.query(`select id, name from family_workspace`);
+    let written = 0;
+    for (const ws of workspaces.rows) {
+      const stats = await db.query(
+        `select
+           (select count(*)::int from caregiver_visit v
+             join care_subject s on s.id = v.subject_id
+             where s.workspace_id = $1 and v.check_in >= now() - interval '7 days') as visits,
+           (select count(*)::int from dose_log dl
+             join care_subject s on s.id = dl.subject_id
+             where s.workspace_id = $1 and dl.status = 'taken'
+               and dl.at >= now() - interval '7 days') as doses_taken,
+           (select count(*)::int from dose_log dl
+             join care_subject s on s.id = dl.subject_id
+             where s.workspace_id = $1 and dl.status = 'missed'
+               and dl.at >= now() - interval '7 days') as doses_missed,
+           (select count(*)::int from expense e
+             join money_pot p on p.id = e.pot_id
+             where p.workspace_id = $1 and e.receipt_url is not null
+               and e.at >= now() - interval '7 days') as receipts,
+           (select count(*)::int from appointment a
+             join care_subject s on s.id = a.subject_id
+             where s.workspace_id = $1
+               and a.starts_at between now() - interval '7 days' and now()) as appointments,
+           (select count(*)::int from duty d
+             join care_subject s on s.id = d.subject_id
+             where s.workspace_id = $1 and d.status = 'done'
+               and d.completed_at >= now() - interval '7 days') as duties_done,
+           (select count(*)::int from attention_event a
+             join care_subject s on s.id = a.subject_id
+             where s.workspace_id = $1 and a.status = 'resolved'
+               and a.resolved_at >= now() - interval '7 days') as attention_resolved,
+           (select count(*)::int from life_signal l
+             join care_subject s on s.id = l.subject_id
+             where s.workspace_id = $1 and l.signal_type = 'checkin'
+               and l.occurred_at >= now() - interval '7 days') as checkins`,
+        [ws.id],
+      );
+      const open = await db.query(
+        `select a.title, s.display_name as subject_name
+         from attention_event a join care_subject s on s.id = a.subject_id
+         where s.workspace_id = $1 and a.status in ('open','ack')
+         order by a.created_at desc limit 6`,
+        [ws.id],
+      );
+      const st = stats.rows[0]!;
+      const weekStart = await db.query(
+        `select (date_trunc('week', now()) - interval '7 days')::date as ws,
+                to_char(date_trunc('week', now()) - interval '7 days', 'DD Month') as label`,
+      );
+      const { body, stats: reportStats } = composeProofOfCare({
+        workspaceName: ws.name,
+        weekLabel: `Week of ${String(weekStart.rows[0]!.label).trim()}`,
+        visitsLogged: st.visits,
+        dosesTaken: st.doses_taken,
+        dosesMissed: st.doses_missed,
+        receiptsUploaded: st.receipts,
+        appointmentsAttended: st.appointments,
+        dutiesCompleted: st.duties_done,
+        attentionResolved: st.attention_resolved,
+        attentionStillOpen: open.rows.map((r) => ({
+          title: r.title,
+          subjectName: r.subject_name,
+        })),
+        checkinsReceived: st.checkins,
+      });
+      const inserted = await db.query(
+        `insert into proof_of_care_report (workspace_id, week_start, body, stats)
+         values ($1, $2, $3, $4)
+         on conflict (workspace_id, week_start) do nothing
+         returning id`,
+        [ws.id, weekStart.rows[0]!.ws, body, JSON.stringify(reportStats)],
+      );
+      if (inserted.rows[0]) {
+        written += 1;
+        const admins = await db.query(
+          `select id from family_member
+           where workspace_id = $1 and role = 'admin' and user_id is not null`,
+          [ws.id],
+        );
+        const { notifyMember } = await import("./notify");
+        for (const a of admins.rows) {
+          await notifyMember({
+            memberId: a.id,
+            title: "The week's Proof of Care is ready",
+            body: "Visits, doses, receipts and duties — the week, accounted for.",
+            link: "/app/record",
+          });
+        }
+      }
+    }
+    return written;
+  });
 }
 
 /** Every 15 minutes: walk the escalation ladder for overdue attention. */

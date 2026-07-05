@@ -18,6 +18,7 @@ export const SIGNAL_TYPES = [
   "emergency",
   "medication_dose",
   "wearable",
+  "wellness_check",
 ] as const;
 export type SignalType = (typeof SIGNAL_TYPES)[number];
 
@@ -31,6 +32,7 @@ export const SIGNAL_SOURCES = [
   "system",
   "health_connect",
   "wearable_sync",
+  "request_check",
 ] as const;
 export type SignalSource = (typeof SIGNAL_SOURCES)[number];
 
@@ -113,6 +115,7 @@ export const ATTENTION_KINDS = [
   "health_pattern",
   "worth_a_check",
   "family_quiet",
+  "check_unanswered",
 ] as const;
 export type AttentionKind = (typeof ATTENTION_KINDS)[number];
 
