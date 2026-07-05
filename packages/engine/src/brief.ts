@@ -101,6 +101,33 @@ export function composeBriefFacts(input: BriefInput): BriefFacts {
   };
 }
 
+/**
+ * The evening glance — one calm line for the nights when nothing needs
+ * anyone. Returns null the moment anything is open, so the fuller brief
+ * (and its ember) does the talking instead. This is the sentence the whole
+ * product exists for: quiet is good news.
+ */
+export function composeCalmDigest(facts: BriefFacts): string | null {
+  if (facts.attention.length > 0) return null;
+  if (facts.dosesOpen > 0) return null;
+
+  const parts: string[] = [];
+  if (facts.checkin) {
+    let line = `${facts.subjectName} checked in — ${MOOD_PHRASE[facts.checkin.mood] ?? "okay"}.`;
+    if (facts.checkin.ate === true) line += " Meals eaten.";
+    parts.push(line);
+  } else {
+    parts.push(`A quiet day around ${facts.subjectName}.`);
+  }
+  if (facts.dosesTaken > 0) {
+    parts.push(
+      facts.dosesTaken === 1 ? "Medication taken." : `All ${facts.dosesTaken} doses taken.`,
+    );
+  }
+  parts.push("Nothing needs you tonight.");
+  return parts.join(" ");
+}
+
 export function composeBriefText(facts: BriefFacts): string {
   const parts: string[] = [];
 

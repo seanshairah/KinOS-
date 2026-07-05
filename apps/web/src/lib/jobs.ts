@@ -1,6 +1,7 @@
 import {
   composeBriefActions,
   composeBriefFacts,
+  composeCalmDigest,
   decideEscalation,
   detectPattern,
   type BriefInput,
@@ -154,7 +155,10 @@ export async function generateBriefs(kind: "morning" | "evening"): Promise<numbe
         [subject.workspace_id],
       );
 
-      // The brief lands as a quiet notification for every member.
+      // The brief lands as a quiet notification for every member. On calm
+      // evenings it becomes the single line the product exists for —
+      // "nothing needs you tonight" — instead of a summary to parse.
+      const calm = kind === "evening" ? composeCalmDigest(facts) : null;
       const members = await db.query(
         `select id from family_member where workspace_id = $1`,
         [subject.workspace_id],
@@ -162,8 +166,10 @@ export async function generateBriefs(kind: "morning" | "evening"): Promise<numbe
       for (const m of members.rows) {
         await notifyMember({
           memberId: m.id,
-          title: `${kind === "morning" ? "Morning" : "Evening"} Brief — ${subject.display_name}`,
-          body: body.slice(0, 140),
+          title: calm
+            ? `All quiet — ${subject.display_name}`
+            : `${kind === "morning" ? "Morning" : "Evening"} Brief — ${subject.display_name}`,
+          body: calm ?? body.slice(0, 140),
           link: `/app/orbits/${subject.id}`,
           priority: "low",
         });
