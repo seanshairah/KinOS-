@@ -7,6 +7,7 @@ import {
   logDoseForm,
   resolveAttentionForm,
   setHealthSharingForm,
+  setSubjectSmsForm,
 } from "@/lib/actions/forms";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -587,6 +588,42 @@ export default async function OrbitDetailPage({
                 </div>
               </details>
             </>
+          )}
+        </Panel>
+      )}
+
+      {/* check-in by text — the no-app path for the person at the centre */}
+      {["admin", "member"].includes(ctx.member.role) && (
+        <Panel className="flex flex-col gap-3">
+          <Eyebrow>Check-in by text</Eyebrow>
+          <p className="max-w-[56ch] text-[13.5px] leading-relaxed text-ink-soft">
+            No app needed. Each morning KinOS texts {subject.display_name} —
+            &quot;How are you today?&quot; — and understands a simple reply: 1, 2, 3,
+            or a word in English, Shona or Ndebele. The answer lands in the orbit
+            like any check-in, and &quot;not feeling well&quot; quietly tells the family.
+          </p>
+          <form action={setSubjectSmsForm} className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="subjectId" value={subject.id} />
+            <input
+              name="phone"
+              type="tel"
+              defaultValue={subject.phone ?? ""}
+              placeholder="Their phone — e.g. +263 77 123 4567"
+              className={inputClass}
+              autoComplete="off"
+            />
+            <label className="flex items-center gap-1.5 text-[13px] text-ink-soft">
+              <input type="checkbox" name="enabled" defaultChecked={subject.sms_checkin} />
+              Ask every morning
+            </label>
+            <button className="rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">
+              Save
+            </button>
+          </form>
+          {subject.sms_checkin && subject.phone && (
+            <p className="font-mono text-[11px] tracking-[0.04em] text-ink-faint">
+              Texting {subject.phone} each morning · replies arrive as check-ins
+            </p>
           )}
         </Panel>
       )}

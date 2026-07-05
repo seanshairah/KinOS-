@@ -9,6 +9,7 @@ import { writeBrief } from "@kinos/ai";
 import { withService } from "@kinos/db";
 import { runDecideStage } from "./pipeline";
 import { notifyMember } from "./notify";
+import { sendSmsCheckinPrompts } from "./sms-checkin";
 
 /**
  * Scheduled jobs, invoked by Vercel Cron through /api/jobs/* with a shared
@@ -182,6 +183,9 @@ export async function attentionSweep(): Promise<number> {
     await runDecideStage(id);
   }
   await markLateDuties();
+  // The daily "how are you?" text rides the same sweep; it stamps a
+  // per-subject date, so re-runs are no-ops.
+  await sendSmsCheckinPrompts().catch(() => {});
   return subjects.length;
 }
 

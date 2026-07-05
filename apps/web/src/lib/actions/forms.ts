@@ -14,6 +14,7 @@ import {
   createDutyAction,
   nudgeMemberAction,
   resolveAttentionAction,
+  setSubjectSmsAction,
 } from "./care";
 import { logDoseAction } from "./signals";
 import { addExpenseAction, contributeAction, createPotAction } from "./money";
@@ -101,6 +102,9 @@ export async function switchWorkspaceForm(fd: FormData): Promise<void> {
 }
 export async function setLocaleForm(fd: FormData): Promise<void> {
   await setLocaleAction(fd);
+}
+export async function setSubjectSmsForm(fd: FormData): Promise<void> {
+  await setSubjectSmsAction(fd);
 }
 export async function setReachPreferencesForm(fd: FormData): Promise<void> {
   await setReachPreferencesAction(fd);

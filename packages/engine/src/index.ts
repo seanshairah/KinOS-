@@ -7,3 +7,4 @@ export * from "./brief";
 export * from "./patterns";
 export * from "./escalation";
 export * from "./time";
+export * from "./sms";

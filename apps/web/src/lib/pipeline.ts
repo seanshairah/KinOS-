@@ -38,12 +38,30 @@ export async function captureSignal(
   userId: string,
   input: CaptureInput,
 ): Promise<CaptureResult> {
+  return runCapture((fn) => withUser(userId, fn), input);
+}
+
+/**
+ * Capture on behalf of the system — an inbound SMS reply or a device
+ * webhook, where nobody is signed in. Same normalize → insert → decide
+ * pipeline, but the write runs service-side: RLS is bypassed deliberately,
+ * so callers MUST have authenticated the sender themselves first (e.g. a
+ * verified Twilio signature plus a phone-number match).
+ */
+export async function captureSignalAsService(input: CaptureInput): Promise<CaptureResult> {
+  return runCapture((fn) => withService(fn), input);
+}
+
+async function runCapture(
+  run: <T>(fn: (db: DbClient) => Promise<T>) => Promise<T>,
+  input: CaptureInput,
+): Promise<CaptureResult> {
   const normalized = normalizeCapture(input, new Date());
   if (!normalized.ok) return { ok: false, reason: normalized.reason };
   const s = normalized.signal;
 
   try {
-    const signalId = await withUser(userId, async (db) => {
+    const signalId = await run(async (db) => {
       const res = await db.query(
         `insert into life_signal
            (subject_id, member_id, signal_type, source, value, unit, privacy_level, occurred_at, raw)

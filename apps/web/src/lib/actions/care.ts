@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { withUser } from "@kinos/db";
 import { requireFamilyContext } from "../data/context";
+import { toE164 } from "../channels";
 import { notifyMember } from "../notify";
 import { recordActivation, runDecideStage } from "../pipeline";
 import type { ActionResult } from "./workspace";
@@ -309,4 +310,36 @@ export async function nudgeMemberAction(formData: FormData): Promise<ActionResul
     priority: "high",
   });
   return { ok: true, message: "Nudge sent." };
+}
+
+/**
+ * Turn on the no-app check-in: KinOS texts the person at the centre each
+ * morning and understands their one-word reply. The phone number is
+ * normalised to E.164 on the way in, because the inbound webhook matches
+ * the sender exactly.
+ */
+export async function setSubjectSmsAction(formData: FormData): Promise<ActionResult> {
+  const ctx = await requireFamilyContext();
+  const parsed = z
+    .object({ subjectId: z.string().uuid(), phone: z.string().max(32).optional() })
+    .safeParse({
+      subjectId: formData.get("subjectId"),
+      phone: formData.get("phone") ?? undefined,
+    });
+  if (!parsed.success) return { ok: false, message: "Check the number and try again." };
+
+  const enabled = formData.has("enabled");
+  const phone = parsed.data.phone?.trim() ? toE164(parsed.data.phone) : null;
+  if (enabled && !phone) {
+    return { ok: false, message: "Add their phone number to turn on check-ins by text." };
+  }
+
+  await withUser(ctx.userId, async (db) => {
+    await db.query(
+      `update care_subject set phone = $2, sms_checkin = $3 where id = $1`,
+      [parsed.data.subjectId, phone, enabled && Boolean(phone)],
+    );
+  });
+  revalidatePath(`/app/orbits/${parsed.data.subjectId}`);
+  return { ok: true };
 }
