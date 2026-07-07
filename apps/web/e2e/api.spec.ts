@@ -121,6 +121,15 @@ test("the mobile surface: me → orbits → check-in → brief → attention →
   const notificationsRes = await request.get(`${BASE}/api/v1/notifications`, { headers: auth });
   expect(notificationsRes.status()).toBe(200);
 
+  // The mobile parity surface: every deep room the app now opens answers.
+  for (const path of ["/api/v1/duties", "/api/v1/money", "/api/v1/record"]) {
+    const r = await request.get(`${BASE}${path}`, { headers: auth });
+    expect(r.status(), `${path} should answer`).toBe(200);
+  }
+  const detail = await request.get(`${BASE}/api/v1/orbits/${subjectId}`, { headers: auth });
+  expect(detail.status()).toBe(200);
+  expect((await detail.json()).subject.id).toBe(subjectId);
+
   const brief = await request.get(`${BASE}/api/v1/brief`, { headers: auth });
   expect(brief.ok()).toBeTruthy();
 

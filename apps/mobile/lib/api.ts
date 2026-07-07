@@ -106,6 +106,81 @@ export interface AppNotification {
   sentAt: string;
 }
 
+export interface OrbitDetail {
+  subject: { id: string; name: string; timezone: string; quietUntil: string | null; quietNote: string | null };
+  status: "steady" | "attention" | "urgent";
+  attention: { id: string; title: string; detail: string | null; severity: string }[];
+  duties: { id: string; title: string; ownerName: string | null; dueAt: string | null; status: string }[];
+  medications: { id: string; name: string; dose: string | null; times: string[]; refillAt: string | null; takenToday: boolean }[];
+  appointments: { id: string; title: string; kind: string; location: string | null; startsAt: string; transportConfirmed: boolean; transportOwnerName: string | null }[];
+  brief: { kind: string; body: string } | null;
+  carePlan: {
+    dailyRoutine: string | null;
+    dietaryNotes: string | null;
+    mobilityNotes: string | null;
+    emergencyInstructions: string | null;
+    preferredPharmacy: string | null;
+    doctorName: string | null;
+    doctorPhone: string | null;
+  } | null;
+  signals: { id: string; type: string; value: Record<string, unknown> | null; occurredAt: string }[];
+  members: { id: string; name: string | null; role: string }[];
+}
+
+export interface Duty {
+  id: string;
+  title: string;
+  dueAt: string | null;
+  priority: string;
+  status: string;
+  subjectId: string;
+  subjectName: string;
+  ownerName: string | null;
+  ownerMemberId: string | null;
+}
+
+export interface RecordItem {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  at: string;
+  subjectId: string;
+  subjectName: string;
+  authorName: string | null;
+}
+
+export interface MoneyPot {
+  id: string;
+  name: string;
+  currency: string;
+  balance: number;
+  subjectName: string | null;
+}
+
+export interface MoneyEntry {
+  id: string;
+  kind: "contribution" | "expense";
+  amount: number;
+  currency: string;
+  note: string | null;
+  category: string | null;
+  at: string;
+  memberName: string | null;
+  potId: string;
+}
+
+export interface EmergencyInfo {
+  profile: {
+    blood_type: string | null;
+    conditions: string[];
+    allergies: string[];
+    medications: string[];
+    instructions: string | null;
+  } | null;
+  contacts: { id: string; name: string; phone: string; relationship: string | null; priority: number }[];
+}
+
 export const api = {
   requestCode: (email: string) =>
     call<{ ok: true }>("/api/v1/auth/request-code", { method: "POST", body: { email } }),
@@ -140,6 +215,49 @@ export const api = {
     call<{ notifications: AppNotification[] }>("/api/v1/notifications", { token }),
   markNotificationsRead: (token: string) =>
     call<{ ok: true }>("/api/v1/notifications", { method: "POST", body: {}, token }),
+  orbitDetail: (token: string, subjectId: string) =>
+    call<OrbitDetail>(`/api/v1/orbits/${subjectId}`, { token }),
+  duties: (token: string) => call<{ duties: Duty[] }>("/api/v1/duties", { token }),
+  createDuty: (
+    token: string,
+    body: { subjectId: string; title: string; ownerMemberId?: string },
+  ) => call<{ ok: true; id: string }>("/api/v1/duties", { method: "POST", body, token }),
+  actOnDuty: (token: string, id: string, action: "done" | "mine") =>
+    call<{ ok: true }>(`/api/v1/duties/${id}`, { method: "POST", body: { action }, token }),
+  logDose: (token: string, medicationId: string, subjectId: string, status = "taken") =>
+    call<{ ok: true }>(`/api/v1/medications/${medicationId}/dose`, {
+      method: "POST",
+      body: { subjectId, status },
+      token,
+    }),
+  confirmTransport: (token: string, appointmentId: string) =>
+    call<{ ok: true }>(`/api/v1/appointments/${appointmentId}/transport`, {
+      method: "POST",
+      body: {},
+      token,
+    }),
+  record: (token: string, q?: string) =>
+    call<{ items: RecordItem[] }>(`/api/v1/record${q ? `?q=${encodeURIComponent(q)}` : ""}`, { token }),
+  addRecordItem: (
+    token: string,
+    body: { subjectId: string; kind?: string; title: string; body?: string },
+  ) => call<{ ok: true; id: string }>("/api/v1/record", { method: "POST", body, token }),
+  money: (token: string) =>
+    call<{ pots: MoneyPot[]; entries: MoneyEntry[] }>("/api/v1/money", { token }),
+  addMoney: (
+    token: string,
+    body: {
+      potId: string;
+      kind: "contribution" | "expense";
+      amount: number;
+      note?: string;
+      category?: string;
+    },
+  ) => call<{ ok: true }>("/api/v1/money", { method: "POST", body, token }),
+  emergency: (token: string, subjectId: string) =>
+    call<EmergencyInfo>(`/api/v1/emergency?subject=${subjectId}`, { token }),
+  raiseAlert: (token: string, subjectId: string, note?: string) =>
+    call<{ ok: true }>("/api/v1/emergency", { method: "POST", body: { subjectId, note }, token }),
   relayHealthReadings: (
     token: string,
     subjectId: string,
