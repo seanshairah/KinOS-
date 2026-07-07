@@ -1,27 +1,35 @@
 import { useCallback, useEffect, useState } from "react";
+import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
-import { api, type Brief } from "@/lib/api";
+import { api, ApiError, type Brief } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import { EmptyNote, Screen } from "@/components/screen";
+import { EmptyNote, LoadingGlow, RetryNote, Screen } from "@/components/screen";
 import { T } from "@/lib/theme";
 
 /** The letter from home — a lit window of paper in the night. */
 export default function BriefScreen() {
-  const { token } = useSession();
+  const { token, signOut } = useSession();
   const [briefs, setBriefs] = useState<Brief[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
     try {
+      setError(null);
       const res = await api.briefs(token);
       setBriefs(res.briefs);
-    } catch {
-      // pull-to-refresh retries
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        await signOut();
+        router.replace("/sign-in");
+        return;
+      }
+      setError(e instanceof ApiError ? e.message : "Couldn't reach the family space.");
     } finally {
       setRefreshing(false);
     }
-  }, [token]);
+  }, [token, signOut]);
 
   useEffect(() => {
     void load();
@@ -37,6 +45,16 @@ export default function BriefScreen() {
         void load();
       }}
     >
+      {briefs === null && !error && <LoadingGlow />}
+      {error && (
+        <RetryNote
+          text={error}
+          onRetry={() => {
+            setRefreshing(true);
+            void load();
+          }}
+        />
+      )}
       {briefs && briefs.length === 0 && (
         <EmptyNote text={"No brief yet today.\nIt arrives like a letter — morning and evening."} />
       )}

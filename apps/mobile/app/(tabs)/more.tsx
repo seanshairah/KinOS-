@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { api, type AppNotification, type PendingCheck } from "@/lib/api";
+import { api, ApiError, type AppNotification, type PendingCheck } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import { EmptyNote, Screen } from "@/components/screen";
+import { EmptyNote, LoadingGlow, RetryNote, Screen } from "@/components/screen";
 import { T } from "@/lib/theme";
 
 /**
@@ -18,22 +19,35 @@ export default function MoreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
     try {
-      const [c, n] = await Promise.all([
+      setError(null);
+      // Each half stands alone: one failing room never blanks the other.
+      const [c, n] = await Promise.allSettled([
         api.checksAwaitingMe(token),
         api.notifications(token),
       ]);
-      setChecks(c.checks);
-      setNotifications(n.notifications);
-    } catch {
-      // pull-to-refresh retries
+      if (c.status === "fulfilled") setChecks(c.value.checks);
+      if (n.status === "fulfilled") setNotifications(n.value.notifications);
+      const failure = [c, n].find(
+        (r): r is PromiseRejectedResult => r.status === "rejected",
+      );
+      if (failure) {
+        const e = failure.reason;
+        if (e instanceof ApiError && e.status === 401) {
+          await signOut();
+          router.replace("/sign-in");
+          return;
+        }
+        setError(e instanceof ApiError ? e.message : "Couldn't reach the family space.");
+      }
     } finally {
       setRefreshing(false);
     }
-  }, [token]);
+  }, [token, signOut]);
 
   useEffect(() => {
     void load();
@@ -89,6 +103,17 @@ export default function MoreScreen() {
         void load();
       }}
     >
+      {checks === null && notifications === null && !error && <LoadingGlow />}
+      {error && (
+        <RetryNote
+          text={error}
+          onRetry={() => {
+            setRefreshing(true);
+            void load();
+          }}
+        />
+      )}
+
       {/* ——— wellness checks waiting on this person ——— */}
       {(checks ?? []).map((check) => (
         <View key={check.id} style={s.card}>
@@ -163,7 +188,13 @@ export default function MoreScreen() {
         <EmptyNote text={"Nothing has needed you yet."} />
       )}
 
-      <Pressable style={({ pressed }) => [s.signOut, pressed && { opacity: 0.7 }]} onPress={() => void signOut()}>
+      <Pressable
+        style={({ pressed }) => [s.signOut, pressed && { opacity: 0.7 }]}
+        onPress={async () => {
+          await signOut();
+          router.replace("/sign-in");
+        }}
+      >
         <Text style={s.ghostText}>Sign out</Text>
       </Pressable>
     </Screen>
