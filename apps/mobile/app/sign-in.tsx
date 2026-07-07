@@ -97,6 +97,18 @@ export default function SignIn() {
             >
               <Text style={s.buttonText}>{busy ? "One moment…" : "Email me a code"}</Text>
             </Pressable>
+            {/* The side door for weak networks: a code that already exists
+                (from an email that arrived, or given by the family) works
+                without the ask ever needing to get through. */}
+            <Pressable
+              disabled={!email.includes("@")}
+              onPress={() => {
+                setMessage(null);
+                setStep("code");
+              }}
+            >
+              <Text style={s.link}>I already have a code</Text>
+            </Pressable>
           </>
         ) : (
           <>
