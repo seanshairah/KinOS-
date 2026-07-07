@@ -1,28 +1,36 @@
 import { useCallback, useEffect, useState } from "react";
+import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { api, type AttentionItem } from "@/lib/api";
+import { api, ApiError, type AttentionItem } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import { EmptyNote, Screen } from "@/components/screen";
+import { EmptyNote, LoadingGlow, RetryNote, Screen } from "@/components/screen";
 import { T } from "@/lib/theme";
 
 /** One thing, one owner — an ember in the night, never a siren. */
 export default function AttentionScreen() {
-  const { token } = useSession();
+  const { token, signOut } = useSession();
   const [items, setItems] = useState<AttentionItem[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token) return;
     try {
+      setError(null);
       const res = await api.attention(token);
       setItems(res.attention);
-    } catch {
-      // pull-to-refresh retries
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        await signOut();
+        router.replace("/sign-in");
+        return;
+      }
+      setError(e instanceof ApiError ? e.message : "Couldn't reach the family space.");
     } finally {
       setRefreshing(false);
     }
-  }, [token]);
+  }, [token, signOut]);
 
   useEffect(() => {
     void load();
@@ -52,6 +60,16 @@ export default function AttentionScreen() {
         void load();
       }}
     >
+      {items === null && !error && <LoadingGlow />}
+      {error && (
+        <RetryNote
+          text={error}
+          onRetry={() => {
+            setRefreshing(true);
+            void load();
+          }}
+        />
+      )}
       {items && items.length === 0 && (
         <EmptyNote text={"Nothing needs attention right now.\nThe sky stays warm and quiet."} />
       )}

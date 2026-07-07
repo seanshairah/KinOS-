@@ -56,6 +56,7 @@ export async function listChecksAwaitingMe(userId: string): Promise<CheckWithNam
        from wellness_check_request r
        join care_subject s on s.id = r.subject_id
        join family_member me on me.workspace_id = s.workspace_id
+       left join family_member m on m.id = r.requested_by
        where me.user_id = app_user_id() and me.role = 'care_recipient'
          and r.status in ('pending','later') and r.respond_by > now()
        order by r.created_at desc`,

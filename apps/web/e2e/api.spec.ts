@@ -114,6 +114,13 @@ test("the mobile surface: me → orbits → check-in → brief → attention →
   );
   expect(after.lastCheckinMood).toBe("okay");
 
+  // The More tab's endpoints answer — a 500 here once blanked the whole tab.
+  const checks = await request.get(`${BASE}/api/v1/checks`, { headers: auth });
+  expect(checks.status()).toBe(200);
+  expect(Array.isArray((await checks.json()).checks)).toBe(true);
+  const notificationsRes = await request.get(`${BASE}/api/v1/notifications`, { headers: auth });
+  expect(notificationsRes.status()).toBe(200);
+
   const brief = await request.get(`${BASE}/api/v1/brief`, { headers: auth });
   expect(brief.ok()).toBeTruthy();
 
