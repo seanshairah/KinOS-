@@ -243,6 +243,12 @@ export async function DevicesPanel({
           <span className="ml-2 font-mono text-[10.5px] text-ink-faint">always available</span>
         </p>
       </div>
+      <a
+        href="/app/consent"
+        className="font-mono text-[11px] text-halo no-underline hover:text-ink"
+      >
+        manage devices &amp; what they share in the Consent Centre →
+      </a>
       {canManage && notConnected.length > 0 && (
         <details>
           <summary className="cursor-pointer text-[12.5px] font-medium text-dusk-2">

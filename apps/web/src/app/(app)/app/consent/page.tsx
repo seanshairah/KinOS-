@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { withUser } from "@kinos/db";
-import type { ConsentGrantRow, MemberRow } from "@kinos/db";
+import type { CareSubjectRow, ConsentGrantRow, MemberRow } from "@kinos/db";
 import { Eyebrow, Panel, Pill } from "@kinos/ui";
-import { grantConsentForm, revokeConsentForm } from "@/lib/actions/forms";
+import { grantConsentForm, revokeConsentForm, setHealthSharingForm } from "@/lib/actions/forms";
 import { requireUserId, getFamilyContext } from "@/lib/data/context";
 import { listConsentGrants, listMembers } from "@/lib/data/consent";
 import { listTrustLog } from "@/lib/data/operating";
+import { hasDeviceLink } from "@/lib/health";
+import { DevicesPanel } from "@/components/orbit-extras";
 import { CalmEmpty, RoomHeader, RoomSection } from "@/components/rooms";
 
 /**
@@ -72,7 +74,7 @@ function ConsentOrbit({
     });
   const RADII = [21, 27, 33, 39, 45, 50]; // % of the box
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[420px]">
+    <div className="relative mx-auto aspect-square w-full max-w-[500px]">
       {RADII.slice(0, 5).map((r, i) => (
         <div
           key={r}
@@ -125,11 +127,24 @@ export default async function ConsentRoomPage() {
     listMembers(userId),
     listTrustLog(userId, 25),
     withUser(userId, async (db) => {
-      const res = await db.query(`select id, display_name from care_subject order by created_at`);
-      return res.rows as { id: string; display_name: string }[];
+      const res = await db.query(`select * from care_subject order by created_at`);
+      return res.rows as CareSubjectRow[];
     }),
   ]);
+  const healthDials = await withUser(userId, async (db) => {
+    const res = await db.query(`select subject_id, metric, level from health_share_scope`);
+    return new Map(
+      (res.rows as { subject_id: string; metric: string; level: string }[]).map((r) => [
+        `${r.subject_id}:${r.metric}`,
+        r.level,
+      ]),
+    );
+  });
   const canGrant = ["admin", "care_recipient"].includes(ctx.member.role);
+  const deviceLinks = new Map<string, boolean>();
+  if (canGrant) {
+    for (const s of subjects) deviceLinks.set(s.id, await hasDeviceLink(s.id));
+  }
   const tz = "Africa/Harare";
   const when = (iso: string) =>
     new Intl.DateTimeFormat("en-GB", {
@@ -164,7 +179,7 @@ export default async function ConsentRoomPage() {
           return (
             <Panel key={subject.id} className="flex flex-col gap-5">
               <Eyebrow>{subject.display_name}&apos;s rings</Eyebrow>
-              <div className="grid items-center gap-6 lg:grid-cols-[1fr_1.1fr]">
+              <div className="grid items-center gap-8 lg:grid-cols-[minmax(320px,0.95fr)_1.05fr]">
                 <ConsentOrbit
                   subjectName={subject.display_name}
                   members={members}
@@ -250,14 +265,32 @@ export default async function ConsentRoomPage() {
                   )}
                 </div>
               </div>
+
+              {/* ——— devices & wearables: how readings arrive, and what they share ——— */}
+              <div className="border-t border-line pt-5">
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <DevicesPanel
+                    subject={subject}
+                    canManage={canGrant || ctx.member.role === "member"}
+                    userId={userId}
+                  />
+                  <HealthSharingCard
+                    subject={subject}
+                    canManage={canGrant}
+                    dials={healthDials}
+                    deviceLinked={deviceLinks.get(subject.id) ?? false}
+                  />
+                </div>
+              </div>
             </Panel>
           );
         })
       )}
 
+      <div className="grid items-start gap-6 xl:grid-cols-[0.9fr_1.1fr]">
       {/* ——— care circles: the same family, seen as groups ——— */}
       <RoomSection title="Care circles" delay={80}>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
           {CIRCLES.map((circle) => {
             const inCircle = members.filter((m) => circle.roles.includes(m.role));
             if (inCircle.length === 0) return null;
@@ -315,6 +348,7 @@ export default async function ConsentRoomPage() {
           </div>
         )}
       </RoomSection>
+      </div>
 
       <p className="max-w-[70ch] text-[12px] leading-relaxed text-ink-faint">
         Your family&apos;s data belongs to your family. Export everything any time from Admin;
@@ -323,5 +357,84 @@ export default async function ConsentRoomPage() {
         replacement for healthcare professionals.
       </p>
     </div>
+  );
+}
+
+const HEALTH_METRICS: { metric: string; label: string }[] = [
+  { metric: "blood_pressure", label: "Blood pressure" },
+  { metric: "heart_rate", label: "Heart rate" },
+  { metric: "sleep_minutes", label: "Sleep" },
+  { metric: "steps", label: "Movement" },
+  { metric: "weight", label: "Weight" },
+];
+
+/**
+ * What each wearable reading shares, per measurement — the dial the
+ * person (or an admin) holds. Readings themselves appear in the orbit's
+ * Health panel and inside Request Check answers; this decides how much
+ * of them health-consented family may see.
+ */
+function HealthSharingCard({
+  subject,
+  canManage,
+  dials,
+  deviceLinked,
+}: {
+  subject: CareSubjectRow;
+  canManage: boolean;
+  dials: Map<string, string>;
+  deviceLinked: boolean;
+}) {
+  return (
+    <Panel className="flex flex-col gap-3">
+      <Eyebrow>What readings share</Eyebrow>
+      <p className="text-[13px] leading-relaxed text-ink-soft">
+        Readings land in {subject.display_name}&apos;s orbit (the Health panel) and in answered
+        wellness checks. Per measurement, choose what health-consented members see: the numbers,
+        quiet notes only, or nothing beyond &ldquo;needs attention&rdquo;.
+      </p>
+      {canManage ? (
+        <div className="flex flex-col gap-2">
+          {HEALTH_METRICS.map(({ metric, label }) => (
+            <form
+              key={metric}
+              action={setHealthSharingForm}
+              className="flex items-center justify-between gap-3 border-t border-line pt-2 first:border-t-0 first:pt-0"
+            >
+              <input type="hidden" name="subjectId" value={subject.id} />
+              <input type="hidden" name="metric" value={metric} />
+              <span className="text-[13.5px]">{label}</span>
+              <span className="flex items-center gap-2">
+                <select
+                  name="level"
+                  defaultValue={dials.get(`${subject.id}:${metric}`) ?? "observations"}
+                  className={inputClass}
+                  aria-label={`${label} sharing level`}
+                >
+                  <option value="readings">The numbers</option>
+                  <option value="observations">Quiet notes only</option>
+                  <option value="status">Status only</option>
+                </select>
+                <button className="rounded-pill bg-dusk px-3.5 py-1.5 text-[12.5px] font-medium text-white">
+                  Save
+                </button>
+              </span>
+            </form>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[12.5px] leading-relaxed text-ink-faint">
+          {subject.display_name} and admins hold these dials.
+        </p>
+      )}
+      {canManage && (
+        <a
+          href={`/api/integrations/withings/connect?subject=${subject.id}`}
+          className="self-start rounded-pill border border-line bg-paper-3 px-4 py-2 text-[12.5px] font-medium text-ink no-underline hover:border-halo/50"
+        >
+          {deviceLinked ? "Withings connected ✓ · relink" : "Link a Withings cuff or scale"}
+        </a>
+      )}
+    </Panel>
   );
 }

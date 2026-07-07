@@ -72,12 +72,14 @@ test("a family activates: workspace → orbit → invite → check-in → duty",
   await page.getByText("Doing well").click();
   await page.getByRole("button", { name: "Send today's check-in" }).click();
 
-  // The check-in lands on the Orbit; a Life Signal exists.
+  // The check-in lands on the Orbit; the Story view holds the Life Signal.
   await expect(page).toHaveURL(/\/app\/orbits\//);
+  await page.getByRole("link", { name: "Story" }).click();
   await expect(page.getByText("Life Signals")).toBeVisible();
   await expect(page.getByText("feeling").first()).toBeVisible();
 
-  // Step 5 — the first duty, assigned from the Orbit.
+  // Step 5 — the first duty, assigned from the Orbit's Care view.
+  await page.getByRole("link", { name: "Care", exact: true }).click();
   await page.getByText("Assign a duty").click();
   await page.getByPlaceholder("e.g. Buy the week's groceries").fill("Buy groceries for the week");
   await page.getByRole("button", { name: "Assign", exact: true }).click();

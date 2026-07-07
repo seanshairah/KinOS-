@@ -194,12 +194,25 @@ function describeSignal(signal: {
   }
 }
 
+const ORBIT_VIEWS = [
+  { key: "today", label: "Today" },
+  { key: "care", label: "Care" },
+  { key: "health", label: "Health" },
+  { key: "plan", label: "Plan & Notes" },
+  { key: "story", label: "Story" },
+] as const;
+type OrbitView = (typeof ORBIT_VIEWS)[number]["key"];
+
 export default async function OrbitDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { id } = await params;
+  const { view: rawView } = await searchParams;
+  const view: OrbitView = (ORBIT_VIEWS.some((v) => v.key === rawView) ? rawView : "today") as OrbitView;
   const ctx = await requireFamilyContext();
   const detail = await getOrbitDetail(ctx.userId, id);
   if (!detail) notFound();
@@ -311,6 +324,44 @@ export default async function OrbitDetailPage({
         </div>
       </section>
 
+      {/* ——— the room's doors: everything has a place, nothing needs a scroll hunt ——— */}
+      <nav
+        aria-label={`${subject.display_name}'s orbit sections`}
+        className="room-enter sticky top-[62px] z-30 -mx-1 overflow-x-auto px-1"
+        style={{ animationDelay: "60ms" }}
+      >
+        <div className="flex w-max min-w-full gap-1.5 rounded-pill border border-line bg-[#2c2a4f]/80 p-1.5 backdrop-blur-xl">
+          {ORBIT_VIEWS.map((v) => {
+            const active = view === v.key;
+            const badge =
+              v.key === "today"
+                ? attention.length
+                : v.key === "care"
+                  ? duties.length
+                  : 0;
+            return (
+              <Link
+                key={v.key}
+                href={`/app/orbits/${subject.id}${v.key === "today" ? "" : `?view=${v.key}`}`}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-pill px-4 py-2 text-[13px] font-medium no-underline transition-all duration-300 ${
+                  active
+                    ? "bg-gradient-to-r from-halo/[.22] to-halo/[.1] text-ink shadow-[inset_0_0_0_1px_rgba(169,167,224,.28)]"
+                    : "text-ink-soft hover:bg-paper-2 hover:text-ink"
+                }`}
+              >
+                {v.label}
+                {badge > 0 && (
+                  <span className="rounded-pill border border-ember-soft bg-attn-bg px-1.5 py-0.5 font-mono text-[9.5px] leading-none text-ember-text">
+                    {badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      {view === "today" && (<>
       {/* brief */}
       {brief && (
         <PaperBrief
@@ -358,6 +409,9 @@ export default async function OrbitDetailPage({
         userId={ctx.userId}
       />
 
+      </>)}
+
+      {view === "care" && (<>
       <div className="grid gap-6 lg:grid-cols-2">
         {/* medication */}
         <Panel className="flex flex-col gap-4">
@@ -528,6 +582,44 @@ export default async function OrbitDetailPage({
         </details>
       </Panel>
 
+      {/* check-in by text — the no-app path for the person at the centre */}
+      {["admin", "member"].includes(ctx.member.role) && (
+        <Panel className="flex flex-col gap-3">
+          <Eyebrow>Check-in by text</Eyebrow>
+          <p className="max-w-[56ch] text-[13.5px] leading-relaxed text-ink-soft">
+            No app needed. Each morning KinOS texts {subject.display_name} —
+            &quot;How are you today?&quot; — and understands a simple reply: 1, 2, 3,
+            or a word in English, Shona or Ndebele. The answer lands in the orbit
+            like any check-in, and &quot;not feeling well&quot; quietly tells the family.
+          </p>
+          <form action={setSubjectSmsForm} className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="subjectId" value={subject.id} />
+            <input
+              name="phone"
+              type="tel"
+              defaultValue={subject.phone ?? ""}
+              placeholder="Their phone — e.g. +263 77 123 4567"
+              className={inputClass}
+              autoComplete="off"
+            />
+            <label className="flex items-center gap-1.5 text-[13px] text-ink-soft">
+              <input type="checkbox" name="enabled" defaultChecked={subject.sms_checkin} />
+              Ask every morning
+            </label>
+            <button className="rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">
+              Save
+            </button>
+          </form>
+          {subject.sms_checkin && subject.phone && (
+            <p className="font-mono text-[11px] tracking-[0.04em] text-ink-faint">
+              Texting {subject.phone} each morning · replies arrive as check-ins
+            </p>
+          )}
+        </Panel>
+      )}
+      </>)}
+
+      {view === "plan" && (<>
       {/* the standing knowledge + the small things worth remembering */}
       <div className="grid gap-6 lg:grid-cols-2">
         <CarePlanPanel
@@ -538,6 +630,15 @@ export default async function OrbitDetailPage({
         <SharedNotesPanel subject={subject} userId={ctx.userId} />
       </div>
 
+      {["admin", "member", "caregiver"].includes(ctx.member.role) && (
+        <Panel className="flex flex-col gap-2">
+          <Eyebrow>Handover</Eyebrow>
+          <HandoverPanel subject={subject} members={members} viewerMemberId={ctx.member.id} />
+        </Panel>
+      )}
+      </>)}
+
+      {view === "health" && (<>
       <div className="grid gap-6 lg:grid-cols-2">
         <QuietModePanel
           subject={subject}
@@ -632,42 +733,9 @@ export default async function OrbitDetailPage({
         </Panel>
       )}
 
-      {/* check-in by text — the no-app path for the person at the centre */}
-      {["admin", "member"].includes(ctx.member.role) && (
-        <Panel className="flex flex-col gap-3">
-          <Eyebrow>Check-in by text</Eyebrow>
-          <p className="max-w-[56ch] text-[13.5px] leading-relaxed text-ink-soft">
-            No app needed. Each morning KinOS texts {subject.display_name} —
-            &quot;How are you today?&quot; — and understands a simple reply: 1, 2, 3,
-            or a word in English, Shona or Ndebele. The answer lands in the orbit
-            like any check-in, and &quot;not feeling well&quot; quietly tells the family.
-          </p>
-          <form action={setSubjectSmsForm} className="flex flex-wrap items-center gap-3">
-            <input type="hidden" name="subjectId" value={subject.id} />
-            <input
-              name="phone"
-              type="tel"
-              defaultValue={subject.phone ?? ""}
-              placeholder="Their phone — e.g. +263 77 123 4567"
-              className={inputClass}
-              autoComplete="off"
-            />
-            <label className="flex items-center gap-1.5 text-[13px] text-ink-soft">
-              <input type="checkbox" name="enabled" defaultChecked={subject.sms_checkin} />
-              Ask every morning
-            </label>
-            <button className="rounded-pill bg-dusk px-4 py-2 text-[12.5px] font-medium text-white">
-              Save
-            </button>
-          </form>
-          {subject.sms_checkin && subject.phone && (
-            <p className="font-mono text-[11px] tracking-[0.04em] text-ink-faint">
-              Texting {subject.phone} each morning · replies arrive as check-ins
-            </p>
-          )}
-        </Panel>
-      )}
+      </>)}
 
+      {view === "story" && (<>
       {/* patterns */}
       {patterns.length > 0 && (
         <Panel className="flex flex-col gap-3">
@@ -677,13 +745,6 @@ export default async function OrbitDetailPage({
               {p.summary}
             </p>
           ))}
-        </Panel>
-      )}
-
-      {["admin", "member", "caregiver"].includes(ctx.member.role) && (
-        <Panel className="flex flex-col gap-2">
-          <Eyebrow>Handover</Eyebrow>
-          <HandoverPanel subject={subject} members={members} viewerMemberId={ctx.member.id} />
         </Panel>
       )}
 
@@ -722,6 +783,7 @@ export default async function OrbitDetailPage({
           </div>
         )}
       </Panel>
+      </>)}
     </div>
   );
 }
