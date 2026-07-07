@@ -87,7 +87,14 @@ export default function OrbitScreen() {
           </View>
 
           {orbits.map((o) => (
-            <View key={o.subjectId} style={s.card}>
+            <Pressable
+              key={o.subjectId}
+              style={({ pressed }) => [s.card, pressed && { opacity: 0.9 }]}
+              onPress={async () => {
+                await Haptics.selectionAsync();
+                router.push({ pathname: "/orbit/[id]", params: { id: o.subjectId, name: o.name } });
+              }}
+            >
               <View style={s.cardRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.name}>{o.name}</Text>
@@ -120,20 +127,31 @@ export default function OrbitScreen() {
                   ]}
                 />
               </View>
-              <Pressable
-                style={({ pressed }) => [s.checkin, pressed && { opacity: 0.85 }]}
-                onPress={async () => {
-                  await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push({
-                    pathname: "/check-in",
-                    params: { subjectId: o.subjectId, name: o.name },
-                  });
-                }}
-              >
-                <View style={s.checkinGlow} />
-                <Text style={s.checkinText}>Check in for {o.name}</Text>
-              </Pressable>
-            </View>
+              <View style={s.cardActions}>
+                <Pressable
+                  style={({ pressed }) => [s.checkin, pressed && { opacity: 0.85 }]}
+                  onPress={async () => {
+                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push({
+                      pathname: "/check-in",
+                      params: { subjectId: o.subjectId, name: o.name },
+                    });
+                  }}
+                >
+                  <View style={s.checkinGlow} />
+                  <Text style={s.checkinText}>Check in</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [s.open, pressed && { opacity: 0.7 }]}
+                  onPress={async () => {
+                    await Haptics.selectionAsync();
+                    router.push({ pathname: "/orbit/[id]", params: { id: o.subjectId, name: o.name } });
+                  }}
+                >
+                  <Text style={s.openText}>Open orbit →</Text>
+                </Pressable>
+              </View>
+            </Pressable>
           ))}
         </>
       )}
@@ -166,6 +184,7 @@ const s = StyleSheet.create({
     elevation: 5,
   },
   checkin: {
+    flex: 1,
     backgroundColor: T.paper3,
     borderRadius: 999,
     paddingVertical: 13,
@@ -186,4 +205,7 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(169,167,224,0.25)",
   },
   checkinText: { color: T.dusk, fontSize: 15, fontFamily: T.sansSemi },
+  cardActions: { flexDirection: "row", alignItems: "center", gap: 12 },
+  open: { paddingVertical: 12, paddingHorizontal: 4 },
+  openText: { color: T.halo, fontSize: 13.5, fontFamily: T.sansSemi },
 });

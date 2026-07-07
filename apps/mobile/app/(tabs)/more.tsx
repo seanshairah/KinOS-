@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { router } from "expo-router";
+import { Href, router } from "expo-router";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { api, ApiError, type AppNotification, type PendingCheck } from "@/lib/api";
@@ -188,6 +188,30 @@ export default function MoreScreen() {
         <EmptyNote text={"Nothing has needed you yet."} />
       )}
 
+      {/* ——— the deeper rooms ——— */}
+      <View style={s.sectionHead}>
+        <Text style={s.sectionTitle}>ROOMS</Text>
+      </View>
+      {(
+        [
+          { href: "/duties", label: "Duties", hint: "the family's open hands" },
+          { href: "/money", label: "Money Pot", hint: "care money with proof" },
+          { href: "/record", label: "Family Record", hint: "the memory that doesn't fade" },
+        ] as { href: Href; label: string; hint: string }[]
+      ).map((room) => (
+        <Pressable
+          key={String(room.href)}
+          style={({ pressed }) => [s.roomRow, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push(room.href)}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={s.roomLabel}>{room.label}</Text>
+            <Text style={s.roomHint}>{room.hint}</Text>
+          </View>
+          <Text style={s.roomArrow}>→</Text>
+        </Pressable>
+      ))}
+
       <Pressable
         style={({ pressed }) => [s.signOut, pressed && { opacity: 0.7 }]}
         onPress={async () => {
@@ -271,5 +295,19 @@ const s = StyleSheet.create({
   },
   noticeTitle: { fontSize: 14.5, fontFamily: T.sansMedium, color: T.duskInk, lineHeight: 20 },
   noticeBody: { fontSize: 12.5, color: "#a5a2c8", marginTop: 2, lineHeight: 17, fontFamily: T.sans },
+  roomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderColor: "rgba(169,167,224,0.18)",
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "rgba(254,252,249,0.04)",
+  },
+  roomLabel: { fontFamily: T.sansSemi, fontSize: 15, color: T.duskInk },
+  roomHint: { fontFamily: T.sans, fontSize: 12, color: "#a5a2c8", marginTop: 2 },
+  roomArrow: { fontFamily: T.sans, fontSize: 18, color: T.halo },
   signOut: { alignSelf: "center", marginTop: 14, paddingHorizontal: 22, paddingVertical: 10 },
 });
